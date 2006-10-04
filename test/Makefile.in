@@ -41,7 +41,8 @@ bin_PROGRAMS = test_mat$(EXEEXT) test_snprintf$(EXEEXT) \
 subdir = test
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/config/matio_lib_suffix.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/config/matio_hdf5.m4 \
+	$(top_srcdir)/config/matio_lib_suffix.m4 \
 	$(top_srcdir)/config/matio_zlib.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
@@ -55,15 +56,17 @@ PROGRAMS = $(bin_PROGRAMS)
 am_test_mat_OBJECTS = test_mat.$(OBJEXT)
 test_mat_OBJECTS = $(am_test_mat_OBJECTS)
 am__DEPENDENCIES_1 =
-test_mat_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am__DEPENDENCIES_2 = $(top_builddir)/src/libmatio.la \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+test_mat_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am__test_matf_SOURCES_DIST = test_matf.f90
 @ENABLE_FORTRAN_TRUE@am_test_matf_OBJECTS =  \
 @ENABLE_FORTRAN_TRUE@	test_matf-test_matf.$(OBJEXT)
 test_matf_OBJECTS = $(am_test_matf_OBJECTS)
-@ENABLE_FORTRAN_TRUE@test_matf_DEPENDENCIES = $(am__DEPENDENCIES_1)
+@ENABLE_FORTRAN_TRUE@test_matf_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_test_snprintf_OBJECTS = test_snprintf.$(OBJEXT)
 test_snprintf_OBJECTS = $(am_test_snprintf_OBJECTS)
-test_snprintf_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_snprintf_DEPENDENCIES = $(am__DEPENDENCIES_2)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)/src
 depcomp =
 am__depfiles_maybe =
@@ -123,8 +126,12 @@ FCLDFLAGS = @FCLDFLAGS@
 FCLIBS = @FCLIBS@
 FGREP = @FGREP@
 GREP = @GREP@
+HAVE_HDF5_FALSE = @HAVE_HDF5_FALSE@
+HAVE_HDF5_TRUE = @HAVE_HDF5_TRUE@
 HAVE_ZLIB_FALSE = @HAVE_ZLIB_FALSE@
 HAVE_ZLIB_TRUE = @HAVE_ZLIB_TRUE@
+HDF5_CFLAGS = @HDF5_CFLAGS@
+HDF5_LIBS = @HDF5_LIBS@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -142,6 +149,8 @@ MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
 MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
+MAT73_FALSE = @MAT73_FALSE@
+MAT73_TRUE = @MAT73_TRUE@
 NM = @NM@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
@@ -213,21 +222,21 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 AUTOMAKE_OPTIONS = foreign 1.8 no-dependencies
-AM_CFLAGS = $(all_includes) -I$(top_srcdir)/src $(ZLIB_CFLAGS)
+AM_CFLAGS = -I$(top_srcdir)/src $(HDF5_CFLAGS) $(ZLIB_CFLAGS)
 AM_LDFLAGS = $(FCLDFLAGS)
-TEST_LIBS = -lmatio $(ZLIB_LIBS)
-TEST_LFLAGS = $(all_libraries) -L$(top_builddir)/src
+TEST_LIBS = $(top_builddir)/src/libmatio.la $(HDF5_LIBS) $(ZLIB_LIBS)
+TEST_LFLAGS = -L$(top_builddir)/src
 test_mat_SOURCES = test_mat.c
-test_mat_LDADD = -lmatio $(ZLIB_LIBS) $(all_libraries)
+test_mat_LDADD = $(TEST_LIBS)
 test_mat_LDFLAGS = $(TEST_LFLAGS)
 test_snprintf_SOURCES = test_snprintf.c
-test_snprintf_LDADD = -lmatio $(ZLIB_LIBS) $(all_libraries)
+test_snprintf_LDADD = $(TEST_LIBS)
 test_snprintf_LDFLAGS = $(TEST_LFLAGS)
 @ENABLE_FORTRAN_TRUE@test_matf_SOURCES = test_matf.f90
 @ENABLE_FORTRAN_TRUE@test_matf_CFLAGS = -I$(top_builddir)/src -I$(top_builddir)/src/fortran
 @ENABLE_FORTRAN_TRUE@test_matf_FCFLAGS = -I$(top_builddir)/src -I$(top_builddir)/src/fortran
 @ENABLE_FORTRAN_TRUE@test_matf_LDFLAGS = -L$(top_builddir)/src -L$(top_builddir)/src/fortran
-@ENABLE_FORTRAN_TRUE@test_matf_LDADD = -lmatio $(ZLIB_LIBS)
+@ENABLE_FORTRAN_TRUE@test_matf_LDADD = $(TEST_LIBS)
 all: all-am
 
 .SUFFIXES:

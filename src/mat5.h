@@ -26,6 +26,7 @@
 #   define EXTERN extern
 #endif
 
+EXTERN mat_t *Create5(const char *matname,const char *hdr_str);
 EXTERN int WriteCellArrayField(mat_t *mat,matvar_t *matvar );
 EXTERN int WriteCellArrayFieldInfo(mat_t *mat,matvar_t *matvar);
 EXTERN int WriteStructField(mat_t *mat,matvar_t *matvar);

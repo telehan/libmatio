@@ -88,8 +88,8 @@ typedef unsigned char   mat_uint8_t;
  * MAT file access types
  */
 enum mat_acc {
-    MAT_ACC_RDONLY = 1,  /**< @brief Read only file access                */
-    MAT_ACC_RDWR   = 2   /**< @brief Read/Write file access               */
+    MAT_ACC_RDONLY = 0,  /**< @brief Read only file access                */
+    MAT_ACC_RDWR   = 1   /**< @brief Read/Write file access               */
 };
 
 /** @brief MAT file versions
@@ -98,8 +98,9 @@ enum mat_acc {
  * MAT file versions
  */
 enum mat_ft {
-    MAT_FT_MAT5  = 1,        /**< @brief Matlab level-5 file                  */
-    MAT_FT_MAT4  = 1 << 16   /**< @brief Version 4 file                       */
+    MAT_FT_MAT73  = 0x0200,   /**< @brief Matlab level-5 file                 */
+    MAT_FT_MAT5   = 0x0100,   /**< @brief Matlab level-5 file                 */
+    MAT_FT_MAT4   = 0x0010    /**< @brief Version 4 file                      */
 };
 
 
@@ -207,7 +208,7 @@ struct ComplexSplit {
  * @ingroup MAT
  */
 typedef struct mat_t {
-    FILE *fp;               /**< Pointer to the MAT file */
+    void *fp;               /**< Pointer to the MAT file */
     char *header;           /**< MAT File header string */
     char *subsys_offset;    /**< offset */
     char *filename;         /**< Name of the file that fp points to */
@@ -284,7 +285,8 @@ EXTERN size_t Mat_SizeOf(int data_type);
 EXTERN size_t Mat_SizeOfClass(int class_type);
 
 /*   MAT File functions   */
-EXTERN mat_t  *Mat_Create(const char *matname,const char *hdr_str);
+EXTERN mat_t  *Mat_Create(const char *matname,const char *hdr_str,
+                          enum mat_ft mat_file_ver);
 EXTERN int     Mat_Close(mat_t *mat);
 EXTERN mat_t  *Mat_Open(const char *matname,int mode);
 EXTERN int     Mat_Rewind(mat_t *mat);

@@ -312,6 +312,78 @@ GetMatrixMaxBufSize(matvar_t *matvar)
     return nBytes;
 }
 
+/** @brief Creates a new Matlab MAT version 5 file
+ *
+ * Tries to create a new Matlab MAT file with the given name and optional
+ * header string.  If no header string is given, the default string
+ * is used containing the software, version, and date in it.  If a header
+ * string is given, at most the first 116 characters is written to the file.
+ * The given header string need not be the full 116 characters, but MUST be
+ * NULL terminated.
+ * @ingroup MAT
+ * @param matname Name of MAT file to create
+ * @param hdr_str Optional header string, NULL to use default
+ * @return A pointer to the MAT file or NULL if it failed.  This is not a
+ * simple FILE * and should not be used as one.
+ */
+mat_t *
+Create5(const char *matname,const char *hdr_str)
+{
+    FILE *fp = NULL;
+    mat_int16_t endian = 0, version;
+    mat_t *mat = NULL;
+    size_t err;
+    time_t t;
+
+    fp = fopen(matname,"wb");
+    if ( !fp )
+        return NULL;
+
+    mat = malloc(sizeof(*mat));
+    if ( !mat ) {
+        fclose(fp);
+        return NULL;
+    }
+
+    mat->fp            = NULL;
+    mat->header        = NULL;
+    mat->subsys_offset = NULL;
+    mat->filename      = NULL;
+    mat->version       = 0;
+    mat->byteswap      = 0;
+    mat->mode          = 0;
+    mat->bof           = 0;
+
+    t = time(NULL);
+    mat->fp = fp;
+    mat->filename = strdup_printf("%s",matname);
+    mat->mode     = MAT_ACC_RDWR;
+    mat->byteswap = 0;
+    mat->header   = calloc(1,128);
+    mat->subsys_offset = calloc(1,16);
+    memset(mat->header,' ',128);
+    if ( hdr_str == NULL ) {
+        err = mat_snprintf(mat->header,116,"MATLAB 5.0 MAT-file, Platform: %s, "                "Created By: libmatio v%d.%d.%d on %s", MATIO_PLATFORM,
+                MATIO_MAJOR_VERSION, MATIO_MINOR_VERSION, MATIO_RELEASE_LEVEL,
+                ctime(&t));
+        mat->header[115] = '\0';    /* Just to make sure it's NULL terminated */    } else {
+        err = mat_snprintf(mat->header,116,"%s",hdr_str);
+    }
+    mat->header[err] = ' ';
+    mat_snprintf(mat->subsys_offset,15,"            ");
+    mat->version = (int)0x0100;
+    endian = 0x4d49;
+
+    version = 0x0100;
+
+    err = fwrite(mat->header,1,116,mat->fp);
+    err = fwrite(mat->subsys_offset,1,8,mat->fp);
+    err = fwrite(&version,2,1,mat->fp);
+    err = fwrite(&endian,2,1,mat->fp);
+
+    return mat;
+}
+
 /** @brief Writes @c data as character data
  *
  * This function uses the knowledge that the data is part of a character class

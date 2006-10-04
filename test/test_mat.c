@@ -25,6 +25,8 @@
 #   define strcasecmp(a,b) strcmp(a,b)
 #endif
 
+static enum mat_ft mat_file_ver = MAT_FT_MAT5;
+
 static const char *helpstr[] = {
     "",
     "Usage: test_mat [OPTIONS] test [TEST_OPTS]",
@@ -32,10 +34,11 @@ static const char *helpstr[] = {
     "Runs various test on the Matlab I/O library libmatio",
     "",
     "OPTIONS",
-    "--help         This output",
-    "--help-tests   List of tests",
-    "--help TEST    help information on test TEST",
-    "--version      version information",
+    "-H, --help           This output",
+    "--help-tests         List of tests",
+    "-H, --help TEST      help information on test TEST",
+    "-v, --mat-version x  Set MAT file version to x (4, 5, 7.3)",
+    "-V, --version        version information",
     "",
     "test        - name of the test to run",
     "TEST_OPTS   - If required, specify arguments to a test(See --help TEST)",
@@ -492,7 +495,7 @@ test_write( void )
          i8[i] = i+1;
     }
 
-    mat = Mat_Open("test_mat_write.mat",MAT_ACC_RDWR);
+    mat = Mat_Open("test_mat_write.mat",MAT_ACC_RDWR | mat_file_ver);
     if ( mat ) {
         matvar = Mat_VarCreate("d",MAT_C_DOUBLE,MAT_T_DOUBLE,2,dims,d,0);
         Mat_VarWrite( mat, matvar, 0);
@@ -509,11 +512,13 @@ test_write( void )
         matvar = Mat_VarCreate("i8",MAT_C_INT8,MAT_T_INT8,2,dims,i8,0);
         Mat_VarWrite( mat, matvar, 0);
         Mat_VarFree(matvar);
-        dims[0] = 1;
-        dims[1] = strlen(str);
-        matvar = Mat_VarCreate("str",MAT_C_CHAR,MAT_T_INT8,2,dims,str,0);
-        Mat_VarWrite( mat, matvar, 0);
-        Mat_VarFree(matvar);
+        if ( mat_file_ver != MAT_FT_MAT73 ) {
+            dims[0] = 1;
+            dims[1] = strlen(str);
+            matvar = Mat_VarCreate("str",MAT_C_CHAR,MAT_T_INT8,2,dims,str,0);
+            Mat_VarWrite( mat, matvar, 0);
+            Mat_VarFree(matvar);
+        }
         Mat_Close(mat);
     } else {
         err = 1;
@@ -672,7 +677,7 @@ test_write_struct()
         idata[i] = i+1;
     }
 
-    mat = Mat_Create("test_mat_write_struct.mat",NULL);
+    mat = Mat_Create("test_mat_write_struct.mat",NULL,mat_file_ver);
     if ( mat ) {
         matvar = malloc(6*sizeof(matvar_t *));
         matvar[0] = Mat_VarCreate("data",MAT_C_DOUBLE,MAT_T_DOUBLE,2,
@@ -728,7 +733,7 @@ test_write_compressed_struct()
         idata[i] = i+1;
     }
 
-    mat = Mat_Create("test_mat_write_compressed_struct.mat",NULL);
+    mat = Mat_Create("test_mat_write_compressed_struct.mat",NULL,mat_file_ver);
     if ( mat ) {
         matvar = malloc(7*sizeof(matvar_t *));
         /*--------------------------------------------------------------*/
@@ -841,7 +846,7 @@ test_write_cell()
         idata[i] = i+1;
     }
 
-    mat = Mat_Create("test_mat_writecell.mat",NULL);
+    mat = Mat_Create("test_mat_writecell.mat",NULL,mat_file_ver);
     if ( mat ) {
         matvar = malloc(5*sizeof(matvar_t *));
         matvar[0] = Mat_VarCreate("data",MAT_C_DOUBLE,MAT_T_DOUBLE,2,
@@ -918,7 +923,7 @@ test_write_compressed_cell()
         idata[i] = i+1;
     }
 
-    mat = Mat_Create("test_mat_write_compressed_cell.mat",NULL);
+    mat = Mat_Create("test_mat_write_compressed_cell.mat",NULL,mat_file_ver);
     if ( mat ) {
         matvar = malloc(5*sizeof(*matvar));
         matvar[0] = Mat_VarCreate("data",MAT_C_DOUBLE,MAT_T_DOUBLE,2,
@@ -988,7 +993,7 @@ test_write_null(void)
     matvar_t *struct_fields[5] = {NULL,NULL,NULL,NULL,NULL};
     int       dims[3] = {0,1,10};
 
-    mat = Mat_Create("test_write_null.mat",NULL);
+    mat = Mat_Create("test_write_null.mat",NULL,mat_file_ver);
     if ( mat != NULL ) {
         struct_fields[0] = Mat_VarCreate("d_null",MAT_C_DOUBLE,MAT_T_DOUBLE,3,
                             dims,NULL,0);
@@ -1134,7 +1139,7 @@ test_writeslab(void)
         idata[i] = i+1;
     }
 
-    mat = Mat_Create("test_mat_writeslab.mat",NULL);
+    mat = Mat_Create("test_mat_writeslab.mat",NULL,mat_file_ver);
     if ( mat != NULL ) {
         matvar = Mat_VarCreate("d",MAT_C_DOUBLE,MAT_T_DOUBLE,2,
                        dims,NULL,0);
@@ -1173,7 +1178,7 @@ test_writenan(void)
     for ( i = 0; i < 25; i+= 6 )
         data[i] = 0.0/0.0;
 
-    mat = Mat_Create("test_writenan.mat",NULL);
+    mat = Mat_Create("test_writenan.mat",NULL,mat_file_ver);
     if ( mat != NULL ) {
         matvar = Mat_VarCreate("d",MAT_C_DOUBLE,MAT_T_DOUBLE,2,
                        dims,data,MEM_CONSERVE);
@@ -1201,7 +1206,7 @@ test_writeinf(void)
     for ( i = 0; i < 25; i+= 6 )
         data[i] = 1.0/0.0;
 
-    mat = Mat_Create("test_writeinf.mat",NULL);
+    mat = Mat_Create("test_writeinf.mat",NULL,mat_file_ver);
     if ( mat != NULL ) {
         matvar = Mat_VarCreate("d",MAT_C_DOUBLE,MAT_T_DOUBLE,2,
                        dims,data,MEM_CONSERVE);
@@ -1311,31 +1316,43 @@ test_delete(char *file,char *name)
 int main (int argc, char *argv[])
 {
     char *prog_name = "test_mat";
-    int   i, k, err = 0, ntests = 0;
+    int   i, k, err = 0, ntests = 0,optind=1;
     mat_t *mat, *mat2;
     matvar_t *matvar, *matvar2, *matvar3;
 
     Mat_LogInit(prog_name);
 
     if ( argc < 2 ) {
-        Mat_Error("Must specify a test, or --help");
-    } else if  ( (argc == 2) && !strcmp(argv[1],"--help") ) {
+        Mat_Error("Must specify a test, -H, --help, -V, or --version");
+    } else if ((argc==2) && !strcmp(argv[1],"--help") ||
+               !strcmp(argv[1],"-H")) {
         Mat_Help(helpstr);
-    } else if  ( (argc == 2) && !strcmp(argv[1],"--help-tests") ) {
+    } else if ( (argc == 2) && !strcmp(argv[1],"--help-tests") ) {
         Mat_Help(helptestsstr);
-    } else if  ( (argc == 3) && !strcmp(argv[1],"--help") ) {
+    } else if ( (argc == 3) && !strcmp(argv[1],"--help") ) {
         help_test(argv[2]);
-    } else if  ( (argc == 2) && !strcmp(argv[1],"--version") ) {
+    } else if ((argc==2) && !strcmp(argv[1],"--version") ||
+               !strcmp(argv[1],"-V")) {
         printf("%s v%d.%d.%d (compiled %s, %s for %s)\n", prog_name,
                MATIO_MAJOR_VERSION, MATIO_MINOR_VERSION, MATIO_RELEASE_LEVEL,
                __DATE__, __TIME__, MATIO_PLATFORM );
         exit(EXIT_SUCCESS);
+    } else if ( argc > 2 && !strcmp(argv[1],"-v") ) {
+        optind = 3;
+        if ( !strcmp(argv[2],"5") ) {
+            mat_file_ver = MAT_FT_MAT5;
+        } else if ( !strcmp(argv[2],"7.3") ) {
+            mat_file_ver = MAT_FT_MAT73;
+        } else {
+            fprintf(stderr,"Unrecognized MAT file version %s",argv[2]);
+            exit(EXIT_FAILURE);
+        }
     }
 
-    for ( k = 1; k < argc; ) {
+    for ( k = optind; k < argc; ) {
         if ( !strcasecmp(argv[k],"copy") ) {
             k++;
-            mat = Mat_Create("test_mat_copy.mat",NULL);
+            mat = Mat_Create("test_mat_copy.mat",NULL,mat_file_ver);
             mat2 = Mat_Open(argv[k++],MAT_ACC_RDONLY);
             if ( mat && mat2 ) {
                 while ( NULL != (matvar = Mat_VarReadNext(mat2)) )

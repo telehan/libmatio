@@ -31,6 +31,8 @@
 #undef HAVE_VASPRINTF
 #undef HAVE_ASPRINTF
 
+#undef MAT73
+
 #undef EXTENDED_SPARSE
 
 #undef Z_PREFIX

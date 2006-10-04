@@ -30,6 +30,9 @@
 #include "mat5.h"
 #include "mat4.h"
 #include "matio_private.h"
+#ifdef MAT73
+#   include "mat73.h"
+#endif
 
 static void
 ReadData(mat_t *mat, matvar_t *matvar)
@@ -64,61 +67,16 @@ ReadData(mat_t *mat, matvar_t *matvar)
  * simple FILE * and should not be used as one.
  */
 mat_t *
-Mat_Create(const char *matname,const char *hdr_str)
+Mat_Create(const char *matname,const char *hdr_str,enum mat_ft mat_file_ver)
 {
-    FILE *fp = NULL;
-    mat_int16_t endian = 0, version;
-    mat_t *mat = NULL;
-    size_t err;
-    time_t t;
+    mat_t *mat;
 
-    fp = fopen(matname,"wb");
-    if ( !fp )
-        return NULL;
-
-    mat = malloc(sizeof(*mat));
-    if ( !mat ) {
-        fclose(fp);
-        return NULL;
-    }
-
-    mat->fp            = NULL;
-    mat->header        = NULL;
-    mat->subsys_offset = NULL;
-    mat->filename      = NULL;
-    mat->version       = 0;
-    mat->byteswap      = 0;
-    mat->mode          = 0;
-    mat->bof           = 0;
-
-    t = time(NULL);
-    mat->fp = fp;
-    mat->filename = strdup_printf("%s",matname);
-    mat->mode     = MAT_ACC_RDWR;
-    mat->byteswap = 0;
-    mat->header   = calloc(1,128);
-    mat->subsys_offset = calloc(1,16);
-    memset(mat->header,' ',128);
-    if ( hdr_str == NULL ) {
-        err = mat_snprintf(mat->header,116,"MATLAB 5.0 MAT-file, Platform: %s, "
-                "Created By: libmatio v%d.%d.%d on %s", MATIO_PLATFORM,
-                MATIO_MAJOR_VERSION, MATIO_MINOR_VERSION, MATIO_RELEASE_LEVEL,
-                ctime(&t));
-        mat->header[115] = '\0';    /* Just to make sure it's NULL terminated */
-    } else {
-        err = mat_snprintf(mat->header,116,"%s",hdr_str);
-    }
-    mat->header[err] = ' ';
-    mat_snprintf(mat->subsys_offset,15,"            ");
-    mat->version = (int)0x0100;
-    endian = 0x4d49;
-
-    version = 0x0100;
-
-    err = fwrite(mat->header,1,116,mat->fp);
-    err = fwrite(mat->subsys_offset,1,8,mat->fp);
-    err = fwrite(&version,2,1,mat->fp);
-    err = fwrite(&endian,2,1,mat->fp);
+    if ( MAT_FT_MAT5 == mat_file_ver )
+        mat = Create5(matname,hdr_str);
+    else if ( MAT_FT_MAT73 == mat_file_ver )
+        mat = Create73(matname,hdr_str);
+    else
+        mat = Create5(matname,hdr_str);
 
     return mat;
 }
@@ -140,18 +98,18 @@ Mat_Open(const char *matname,int mode)
     int     err;
     mat_t *mat = NULL;
 
-    if ( (mode & 0x000000ff) == MAT_ACC_RDONLY ) {
+    if ( (mode & 0x00000001) == MAT_ACC_RDONLY ) {
         fp = fopen( matname, "rb" );
         if ( !fp )
             return NULL;
-    } else if ( (mode & 0x000000ff) == MAT_ACC_RDWR ) {
+    } else if ( (mode & 0x00000001) == MAT_ACC_RDWR ) {
         fp = fopen( matname, "r+b" );
         if ( !fp ) {
-            mat = Mat_Create(matname,NULL);
+            mat = Mat_Create(matname,NULL,mode&0xfffffffe);
             return mat;
         }
     } else {
-        mat = Mat_Create(matname,NULL);
+        mat = Mat_Create(matname,NULL,mode&0xfffffffe);
         return mat;
     }
 
@@ -194,14 +152,31 @@ Mat_Open(const char *matname,int mode)
             Mat_Critical("%s does not seem to be a valid MAT file",matname);
             Mat_Close(mat);
             mat=NULL;
-        } else if ( mat->version != 0x0100 ) {
-            Mat_Critical("%s is not a version 5 MAT file", matname);
+        } else if (mat->version != 0x0100 && mat->version != 0x0200) {
+            Mat_Critical("%s is not a recognized MAT file version", matname);
             Mat_Close(mat);
             mat=NULL;
         } else {
             mat->filename = strdup_printf("%s",matname);
             mat->mode = mode;
         }
+    }
+
+    if ( mat->version == 0x0200 ) {
+        fclose(mat->fp);
+#ifdef MAT73
+
+        mat->fp = malloc(sizeof(hid_t));
+
+        if ( (mode & 0x00ff) == MAT_ACC_RDONLY )
+            *(hid_t*)mat->fp=H5Fopen(mat->filename,H5F_ACC_RDONLY,H5P_DEFAULT);
+        else if ( (mode & 0x00ff) == MAT_ACC_RDWR )
+            *(hid_t*)mat->fp=H5Fopen(mat->filename,H5F_ACC_RDWR,H5P_DEFAULT);
+#else
+        mat->fp = NULL;
+        Mat_Close(mat);
+        mat = NULL;
+#endif
     }
 
     return mat;
@@ -217,6 +192,12 @@ Mat_Open(const char *matname,int mode)
 int
 Mat_Close( mat_t *mat )
 {
+#ifdef MAT73
+    if ( mat->version == 0x0200 ) {
+        H5Fclose(*(hid_t*)mat->fp);
+        mat->fp = NULL;
+    }
+#endif
     if ( mat->fp )
         fclose(mat->fp);
     if ( mat->header )
@@ -531,14 +512,26 @@ Mat_VarCreate(const char *name,int class_type,int data_type,int rank,int *dims,
 int
 Mat_VarDelete(mat_t *mat, char *name)
 {
-    int   err = 1;
+    int   err = 1,mat_file_ver;
     char *tmp_name, *new_name, *temp;
     mat_t *tmp;
     matvar_t *matvar;
 
+    switch ( mat->version ) {
+        case 0x0200:
+            mat_file_ver = MAT_FT_MAT73;
+            break;
+        case 0x0100:
+            mat_file_ver = MAT_FT_MAT5;
+            break;
+        case 0x0010:
+            mat_file_ver = MAT_FT_MAT4;
+            break;
+    }
+
     temp     = strdup_printf("XXXXXX");
     tmp_name = mktemp(temp);
-    tmp      = Mat_Create(tmp_name,mat->header);
+    tmp      = Mat_Create(tmp_name,mat->header,mat_file_ver);
     if ( tmp != NULL ) {
         while ( NULL != (matvar = Mat_VarReadNext(mat)) ) {
             if ( strcmp(matvar->name,name) )
@@ -1859,8 +1852,12 @@ Mat_VarWrite( mat_t *mat, matvar_t *matvar, int compress )
 {
     if ( mat == NULL || matvar == NULL )
         return -1;
-    else if ( mat->version != MAT_FT_MAT4 )
+    else if ( mat->version == MAT_FT_MAT5 )
         Write5(mat,matvar,compress);
+#ifdef MAT73
+    else if ( mat->version == MAT_FT_MAT73 )
+        Write73(mat,matvar,compress);
+#endif
 
     return 0;
 }

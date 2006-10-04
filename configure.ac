@@ -293,6 +293,29 @@ fi
 
 MATIO_CHECK_ZLIB
 
+MATIO_CHECK_HDF5
+dnl
+dnl Check whether to enable MAT v7.3 files
+dnl
+AC_ARG_ENABLE(mat73,
+    AS_HELP_STRING([--enable-mat73=yes],[Enable MAT v7.3 file support]),
+mat73=$enableval,mat73=yes)
+AC_MSG_CHECKING(enable enable MAT v7.3 file support)
+if test "x$mat73" = "xno"
+then
+    AC_MSG_RESULT(no)
+    mat73=no
+elif test "x$ac_have_hdf5" = "xno"
+then
+    AC_MSG_RESULT(no)
+    mat73=no
+else
+    AC_MSG_RESULT(yes)
+    AC_DEFINE_UNQUOTED([MAT73])
+    mat73=yes
+fi
+AM_CONDITIONAL(MAT73, test "x$mat73" = "xyes")
+
 dnl
 dnl Check whether to build in debug mode
 dnl
@@ -389,10 +412,12 @@ AC_MSG_RESULT([     Static Libraries: $enable_static])
 AC_MSG_RESULT([])
 AC_MSG_RESULT([Features --------------------------------------------])
 AC_MSG_RESULT([    Fortran Interface: $enable_fortran])
+AC_MSG_RESULT([MAT v7.3 file support: $mat73])
 AC_MSG_RESULT([        test programs: $build_test])
 AC_MSG_RESULT([        Documentation: $docs_install])
 AC_MSG_RESULT([])
 AC_MSG_RESULT([Packages --------------------------------------------])
 AC_MSG_RESULT([                 zlib: $ZLIB_LIBS])
+AC_MSG_RESULT([                 hdf5: $HDF5_LIBS])
 AC_MSG_RESULT([])
 AC_MSG_RESULT([])

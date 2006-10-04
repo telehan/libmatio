@@ -14,8 +14,6 @@
 
 @SET_MAKE@
 
-# automake file for scats
-
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
@@ -45,7 +43,8 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	config/install-sh config/ltmain.sh config/missing
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/config/matio_lib_suffix.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/config/matio_hdf5.m4 \
+	$(top_srcdir)/config/matio_lib_suffix.m4 \
 	$(top_srcdir)/config/matio_zlib.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
@@ -124,8 +123,12 @@ FCLDFLAGS = @FCLDFLAGS@
 FCLIBS = @FCLIBS@
 FGREP = @FGREP@
 GREP = @GREP@
+HAVE_HDF5_FALSE = @HAVE_HDF5_FALSE@
+HAVE_HDF5_TRUE = @HAVE_HDF5_TRUE@
 HAVE_ZLIB_FALSE = @HAVE_ZLIB_FALSE@
 HAVE_ZLIB_TRUE = @HAVE_ZLIB_TRUE@
+HDF5_CFLAGS = @HDF5_CFLAGS@
+HDF5_LIBS = @HDF5_LIBS@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -143,6 +146,8 @@ MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
 MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
+MAT73_FALSE = @MAT73_FALSE@
+MAT73_TRUE = @MAT73_TRUE@
 NM = @NM@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@

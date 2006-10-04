@@ -8433,5 +8433,6 @@ _LT_DECL(, macro_version, 0, [Which release of libtool.m4 was used?])
 _LT_DECL(, macro_revision, 0)
 ])
 
+m4_include([config/matio_hdf5.m4])
 m4_include([config/matio_lib_suffix.m4])
 m4_include([config/matio_zlib.m4])
