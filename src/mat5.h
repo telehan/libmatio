@@ -26,7 +26,7 @@
 #   define EXTERN extern
 #endif
 
-EXTERN mat_t *Create5(const char *matname,const char *hdr_str);
+EXTERN mat_t *Mat_Create5(const char *matname,const char *hdr_str);
 EXTERN int WriteCellArrayField(mat_t *mat,matvar_t *matvar );
 EXTERN int WriteCellArrayFieldInfo(mat_t *mat,matvar_t *matvar);
 EXTERN int WriteStructField(mat_t *mat,matvar_t *matvar);
@@ -46,7 +46,7 @@ matvar_t *Mat_VarReadNextInfo5( mat_t *mat );
 void      Read5(mat_t *mat, matvar_t *matvar);
 int       ReadData5(mat_t *mat,matvar_t *matvar,void *data, 
               int *start,int *stride,int *edge);
-int       Write5(mat_t *mat,matvar_t *matvar,int compress);
+int       Mat_VarWrite5(mat_t *mat,matvar_t *matvar,int compress);
 int       WriteCharDataSlab2(mat_t *mat,void *data,int data_type,int *dims,
               int *start,int *stride,int *edge);
 #if defined(HAVE_ZLIB)

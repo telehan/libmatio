@@ -208,14 +208,16 @@ struct ComplexSplit {
  * @ingroup MAT
  */
 typedef struct mat_t {
-    void *fp;               /**< Pointer to the MAT file */
+    void *fp;               /**< File pointer for the MAT file */
     char *header;           /**< MAT File header string */
     char *subsys_offset;    /**< offset */
-    char *filename;         /**< Name of the file that fp points to */
+    char *filename;         /**< Filename of the MAT file */
     int   version;          /**< MAT File version */
-    int   byteswap;         /**< 1 if byte swapping is required, 0 else */
+    int   byteswap;         /**< 1 if byte swapping is required, 0 otherwise */
     int   mode;             /**< Access mode */
-    long  bof;              /**< Beginning of file not including header */
+    long  bof;              /**< Beginning of file not including any header */
+    long  next_index;       /**< Index/File position of next variable to read */
+    long  num_datasets;     /**< Number of datasets in the file */
 } mat_t;
 
 /** @brief Matlab variable information

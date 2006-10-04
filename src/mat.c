@@ -72,11 +72,11 @@ Mat_Create(const char *matname,const char *hdr_str,enum mat_ft mat_file_ver)
     mat_t *mat;
 
     if ( MAT_FT_MAT5 == mat_file_ver )
-        mat = Create5(matname,hdr_str);
+        mat = Mat_Create5(matname,hdr_str);
     else if ( MAT_FT_MAT73 == mat_file_ver )
-        mat = Create73(matname,hdr_str);
+        mat = Mat_Create73(matname,hdr_str);
     else
-        mat = Create5(matname,hdr_str);
+        mat = Mat_Create5(matname,hdr_str);
 
     return mat;
 }
@@ -113,8 +113,8 @@ Mat_Open(const char *matname,int mode)
         return mat;
     }
 
-    mat = malloc(sizeof(mat_t));
-    if ( !mat ) {
+    mat = malloc(sizeof(*mat));
+    if ( NULL == mat ) {
         Mat_Critical("Couldn't allocate memory for the MAT file");
         fclose(fp);
         return NULL;
@@ -127,8 +127,9 @@ Mat_Open(const char *matname,int mode)
         mat->version       = MAT_FT_MAT4;
         mat->byteswap      = 0;
         mat->mode          = mode;
-        mat->filename = strdup_printf("%s",matname);
+        mat->filename       = strdup_printf("%s",matname);
         mat->bof           = ftell(mat->fp);
+        mat->next_index    = 0;
     } else {
         mat->header = malloc(128);
         mat->subsys_offset = malloc(8);
@@ -138,6 +139,7 @@ Mat_Open(const char *matname,int mode)
         err = fread(&tmp2,2,1,fp);
         fread (&tmp,1,2,fp);
         mat->bof = ftell(mat->fp);
+        mat->next_index    = 0;
 
         mat->byteswap = -1;
         if (tmp == 0x4d49)
@@ -172,6 +174,12 @@ Mat_Open(const char *matname,int mode)
             *(hid_t*)mat->fp=H5Fopen(mat->filename,H5F_ACC_RDONLY,H5P_DEFAULT);
         else if ( (mode & 0x00ff) == MAT_ACC_RDWR )
             *(hid_t*)mat->fp=H5Fopen(mat->filename,H5F_ACC_RDWR,H5P_DEFAULT);
+
+        if ( -1 < *(hid_t*)mat->fp ) {
+            hsize_t num_objs;
+            H5Gget_num_objs(*(hid_t*)mat->fp,&num_objs);
+            mat->num_datasets = num_objs;
+        }
 #else
         mat->fp = NULL;
         Mat_Close(mat);
@@ -1628,8 +1636,10 @@ Mat_VarReadNextInfo( mat_t *mat )
 {
     if( mat == NULL )
         return NULL;
-    else if ( mat->version == 0x0100 )
+    else if ( mat->version == MAT_FT_MAT5 )
         return Mat_VarReadNextInfo5(mat);
+    else if ( mat->version == MAT_FT_MAT73 )
+        return Mat_VarReadNextInfo73(mat);
     else
         return Mat_VarReadNextInfo4(mat);
 
@@ -1657,41 +1667,43 @@ Mat_VarReadInfo( mat_t *mat, char *name )
     if ( (mat == NULL) || (name == NULL) )
         return NULL;
 
-    fpos = ftell(mat->fp);
-
-    fseek(mat->fp,mat->bof,SEEK_SET);
-    do {
-#if 0
-        err = fread(&data_type,4,1,mat->fp);
-        if ( !err )
-            return NULL;
-        err = fread(&nBytes,4,1,mat->fp);
-        if ( mat->byteswap ) {
-            int32Swap(&data_type);
-            int32Swap(&nBytes);
-        }
-        curpos = ftell(mat->fp);
-        fseek(mat->fp,-8,SEEK_CUR);
-#endif
-        matvar = Mat_VarReadNextInfo(mat);
-        if ( matvar != NULL ) {
-            if ( !matvar->name ) {
-                Mat_VarFree(matvar);
-                matvar = NULL;
-            } else if ( strcmp(matvar->name,name) ) {
-                Mat_VarFree(matvar);
-                matvar = NULL;
+    if ( mat->version == MAT_FT_MAT73 ) {
+        do {
+            matvar = Mat_VarReadNextInfo(mat);
+            if ( matvar != NULL ) {
+                if ( !matvar->name ) {
+                    Mat_VarFree(matvar);
+                    matvar = NULL;
+                } else if ( strcmp(matvar->name,name) ) {
+                    Mat_VarFree(matvar);
+                    matvar = NULL;
+                }
+            } else {
+                Mat_Critical("An error occurred in reading the MAT file");
+                break;
             }
-        } else {
-            Mat_Critical("An error occurred in reading the MAT file");
-            break;
-        }
-#if 0
-        fseek(mat->fp,curpos+nBytes,SEEK_SET);
-#endif
-    } while ( !matvar && !feof(mat->fp) );
+        } while ( NULL == matvar && mat->next_index < mat->num_datasets);
+    } else {
+        fpos = ftell(mat->fp);
+        fseek(mat->fp,mat->bof,SEEK_SET);
+        do {
+            matvar = Mat_VarReadNextInfo(mat);
+            if ( matvar != NULL ) {
+                if ( !matvar->name ) {
+                    Mat_VarFree(matvar);
+                    matvar = NULL;
+                } else if ( strcmp(matvar->name,name) ) {
+                    Mat_VarFree(matvar);
+                    matvar = NULL;
+                }
+            } else {
+                Mat_Critical("An error occurred in reading the MAT file");
+                break;
+            }
+        } while ( !matvar && !feof(mat->fp) );
 
-    fseek(mat->fp,fpos,SEEK_SET);
+        fseek(mat->fp,fpos,SEEK_SET);
+    }
     return matvar;
 }
 
@@ -1848,15 +1860,15 @@ Mat_VarWriteData(mat_t *mat,matvar_t *matvar,void *data,
  * @retval 0 on success
  */
 int
-Mat_VarWrite( mat_t *mat, matvar_t *matvar, int compress )
+Mat_VarWrite(mat_t *mat,matvar_t *matvar,int compress)
 {
     if ( mat == NULL || matvar == NULL )
         return -1;
     else if ( mat->version == MAT_FT_MAT5 )
-        Write5(mat,matvar,compress);
+        Mat_VarWrite5(mat,matvar,compress);
 #ifdef MAT73
     else if ( mat->version == MAT_FT_MAT73 )
-        Write73(mat,matvar,compress);
+        Mat_VarWrite73(mat,matvar,compress);
 #endif
 
     return 0;

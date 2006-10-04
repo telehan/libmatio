@@ -327,7 +327,7 @@ GetMatrixMaxBufSize(matvar_t *matvar)
  * simple FILE * and should not be used as one.
  */
 mat_t *
-Create5(const char *matname,const char *hdr_str)
+Mat_Create5(const char *matname,const char *hdr_str)
 {
     FILE *fp = NULL;
     mat_int16_t endian = 0, version;
@@ -345,14 +345,15 @@ Create5(const char *matname,const char *hdr_str)
         return NULL;
     }
 
-    mat->fp            = NULL;
-    mat->header        = NULL;
-    mat->subsys_offset = NULL;
-    mat->filename      = NULL;
-    mat->version       = 0;
-    mat->byteswap      = 0;
-    mat->mode          = 0;
-    mat->bof           = 0;
+    mat->fp               = NULL;
+    mat->header           = NULL;
+    mat->subsys_offset    = NULL;
+    mat->filename         = NULL;
+    mat->version          = 0;
+    mat->byteswap         = 0;
+    mat->mode             = 0;
+    mat->bof              = 0;
+    mat->next_index       = 0;
 
     t = time(NULL);
     mat->fp = fp;
@@ -5001,7 +5002,7 @@ ReadData5(mat_t *mat,matvar_t *matvar,void *data,
  * @retval 0 on success
  */
 int
-Write5(mat_t *mat,matvar_t *matvar,int compress)
+Mat_VarWrite5(mat_t *mat,matvar_t *matvar,int compress)
 {
     mat_uint32_t array_flags = 0x0;
     mat_int16_t  fieldname_type = MAT_T_INT32,fieldname_data_size=4;

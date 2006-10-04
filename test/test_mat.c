@@ -472,6 +472,8 @@ help_test(const char *test)
         Mat_Help(helptest_ind2sub);
     else if ( !strcmp(test,"sub2ind") )
         Mat_Help(helptest_sub2ind);
+    else
+        exit(EXIT_FAILURE);
 }
 
 static int
@@ -1322,15 +1324,15 @@ int main (int argc, char *argv[])
 
     if ( argc < 2 ) {
         Mat_Error("Must specify a test, -H, --help, -V, or --version");
-    } else if ((argc==2) && !strcmp(argv[1],"--help") ||
-               !strcmp(argv[1],"-H")) {
+    } else if ((argc==2) && 
+               (!strcmp(argv[1],"--help") || !strcmp(argv[1],"-H"))) {
         Mat_Help(helpstr);
     } else if ( (argc == 2) && !strcmp(argv[1],"--help-tests") ) {
         Mat_Help(helptestsstr);
     } else if ( (argc == 3) && !strcmp(argv[1],"--help") ) {
         help_test(argv[2]);
-    } else if ((argc==2) && !strcmp(argv[1],"--version") ||
-               !strcmp(argv[1],"-V")) {
+    } else if ((argc==2) && 
+               (!strcmp(argv[1],"--version") || !strcmp(argv[1],"-V"))) {
         printf("%s v%d.%d.%d (compiled %s, %s for %s)\n", prog_name,
                MATIO_MAJOR_VERSION, MATIO_MINOR_VERSION, MATIO_RELEASE_LEVEL,
                __DATE__, __TIME__, MATIO_PLATFORM );

@@ -53,6 +53,28 @@ static const char *Mat_class_names[] = {
     "function"
 };
 
+/*===========================================================================
+ *  Private functions
+ *===========================================================================
+ */
+static int Mat_class_str_to_id(const char *name);
+
+static int
+Mat_class_str_to_id(const char *name)
+{
+    int id = 0;
+    if ( NULL != name ) {
+        int k;
+        for ( k = 1; k < 17; k++ ) {
+            if ( !strcmp(name,Mat_class_names[k]) ) {
+                id = k;
+                break;
+            }
+        }
+    }
+    return id;
+}
+
 static hid_t
 Mat_class_type_to_hid_t(enum matio_classes class_type)
 {
@@ -258,7 +280,7 @@ Mat_data_type_to_hid_t(enum matio_types data_type)
  * simple FILE * and should not be used as one.
  */
 mat_t *
-Create73(const char *matname,const char *hdr_str)
+Mat_Create73(const char *matname,const char *hdr_str)
 {
     FILE *fp = NULL;
     mat_int16_t endian = 0, version;
@@ -285,14 +307,15 @@ Create73(const char *matname,const char *hdr_str)
         return NULL;
     }
 
-    mat->fp            = NULL;
-    mat->header        = NULL;
-    mat->subsys_offset = NULL;
-    mat->filename      = NULL;
-    mat->version       = 0;
-    mat->byteswap      = 0;
-    mat->mode          = 0;
-    mat->bof           = 0;
+    mat->fp               = NULL;
+    mat->header           = NULL;
+    mat->subsys_offset    = NULL;
+    mat->filename         = NULL;
+    mat->version          = 0;
+    mat->byteswap         = 0;
+    mat->mode             = 0;
+    mat->bof              = 0;
+    mat->next_index       = 0;
 
     t = time(NULL);
     mat->filename = strdup_printf("%s",matname);
@@ -331,6 +354,98 @@ Create73(const char *matname,const char *hdr_str)
     return mat;
 }
 
+/** @brief Reads the header information for the next MAT variable
+ *
+ * @ingroup mat_internal
+ * @param mat MAT file pointer
+ * @retuen pointer to the MAT variable or NULL
+ */
+matvar_t *
+Mat_VarReadNextInfo73( mat_t *mat )
+{
+    hid_t       fid,gid;
+    hsize_t     num_objs;
+    H5E_auto_t  efunc;
+    void       *client_data;
+    matvar_t   *matvar;
+
+    if( mat == NULL )
+        return NULL;
+
+    fid = *(hid_t*)mat->fp;
+    H5Gget_num_objs(fid,&num_objs);
+    /* FIXME: follow symlinks, datatypes? */
+    while ( H5G_DATASET != H5Gget_objtype_by_idx(fid,mat->next_index) &&
+            mat->next_index < num_objs ) {
+        mat->next_index++;
+    }
+
+    if ( mat->next_index >= num_objs )
+        return NULL;
+
+    matvar = Mat_VarCalloc();
+    if ( NULL != matvar ) {
+        ssize_t  name_len;
+        /* FIXME */
+        hsize_t  dims[10];
+        hid_t   attr_id,type_id,dset_id,space_id;
+
+        matvar->fp = mat;
+        name_len = H5Gget_objname_by_idx(fid,mat->next_index,NULL,0);
+        matvar->name = malloc(1+name_len);
+        if ( matvar->name ) {
+            name_len = H5Gget_objname_by_idx(fid,mat->next_index,matvar->name,
+                                             1+name_len);
+            matvar->name[name_len] = '\0';
+        }
+        dset_id = H5Dopen(fid,matvar->name);
+        space_id = H5Dget_space(dset_id);
+        matvar->rank = H5Sget_simple_extent_ndims(space_id);
+        matvar->dims = malloc(matvar->rank*sizeof(*matvar->dims));
+        if ( NULL != matvar->dims ) {
+            int k;
+            H5Sget_simple_extent_dims(space_id,dims,NULL);
+            for ( k = 0; k < matvar->rank; k++ )
+                matvar->dims[k] = dims[k];
+        }
+        H5Sclose(space_id);
+
+        attr_id = H5Aopen_name(dset_id,"MATLAB_class");
+        type_id  = H5Aget_type(attr_id);
+        if ( H5T_STRING == H5Tget_class(type_id) ) {
+            char *class_str = malloc(H5Tget_size(type_id));
+            if ( NULL != class_str ) {
+                hid_t class_id = H5Tcopy(H5T_C_S1);
+                H5Tset_size(class_id,H5Tget_size(type_id));
+                H5Aread(attr_id,class_id,class_str);
+                H5Tclose(class_id);
+                matvar->class_type = Mat_class_str_to_id(class_str);
+                free(class_str);
+            }
+        }
+        H5Tclose(type_id);
+        H5Aclose(attr_id);
+
+        /* Turn off error printing so testing for attributes doesn't print
+         * error stacks
+         */
+        H5Eget_auto(&efunc,&client_data);
+        H5Eset_auto((H5E_auto_t)0,NULL);
+
+        attr_id = H5Aopen_name(dset_id,"MATLAB_global");
+        /* FIXME: Check that dataspace is scalar */
+        if ( -1 < attr_id ) {
+            H5Aread(attr_id,H5T_NATIVE_INT,&matvar->isGlobal);
+            H5Aclose(attr_id);
+        }
+
+        H5Eset_auto(efunc,client_data);
+        H5Dclose(dset_id);
+        mat->next_index++;
+    }
+    return matvar;
+}
+
 /** @brief Writes a matlab variable to a version 7.3 matlab file
  *
  * @ingroup mat_internal
@@ -341,7 +456,7 @@ Create73(const char *matname,const char *hdr_str)
  * @retval 0 on success
  */
 int
-Write73(mat_t *mat,matvar_t *matvar,int compress)
+Mat_VarWrite73(mat_t *mat,matvar_t *matvar,int compress)
 {
     int k;
     hid_t mspace_id,dset_id,attr_type_id,attr_id,aspace_id;
