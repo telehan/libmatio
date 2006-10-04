@@ -512,13 +512,11 @@ test_write( void )
         matvar = Mat_VarCreate("i8",MAT_C_INT8,MAT_T_INT8,2,dims,i8,0);
         Mat_VarWrite( mat, matvar, 0);
         Mat_VarFree(matvar);
-        if ( mat_file_ver != MAT_FT_MAT73 ) {
-            dims[0] = 1;
-            dims[1] = strlen(str);
-            matvar = Mat_VarCreate("str",MAT_C_CHAR,MAT_T_INT8,2,dims,str,0);
-            Mat_VarWrite( mat, matvar, 0);
-            Mat_VarFree(matvar);
-        }
+        dims[0] = 1;
+        dims[1] = strlen(str);
+        matvar = Mat_VarCreate("str",MAT_C_CHAR,MAT_T_INT8,2,dims,str,0);
+        Mat_VarWrite( mat, matvar, 0);
+        Mat_VarFree(matvar);
         Mat_Close(mat);
     } else {
         err = 1;
