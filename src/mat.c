@@ -250,6 +250,14 @@ Mat_SizeOfClass(int class_type)
             return sizeof(double);
         case MAT_C_SINGLE:
             return sizeof(float);
+#ifdef HAVE_MAT_INT64_T
+        case MAT_C_INT64:
+            return sizeof(mat_int64_t);
+#endif
+#ifdef HAVE_MAT_UINT64_T
+        case MAT_C_UINT64:
+            return sizeof(mat_uint64_t);
+#endif
         case MAT_C_INT32:
             return sizeof(mat_int32_t);
         case MAT_C_UINT32:
@@ -1471,6 +1479,58 @@ Mat_VarReadDataLinear(mat_t *mat,matvar_t *matvar,void *data,int start,
 #endif
                 }
                 break;
+#ifdef HAVE_MAT_INT64_T
+            case MAT_C_INT64:
+                matvar->data_type = MAT_T_INT64;
+                matvar->data_size = sizeof(mat_int64_t);
+                if ( matvar->compression == COMPRESSION_NONE ) {
+                    stride *= Mat_SizeOf(data_type);
+                    for ( i = 0; i < edge; i++ ) {
+                        ReadInt64Data(mat,(mat_int64_t*)data+i,data_type,1);
+                        fseek(mat->fp,stride,SEEK_CUR);
+                    }
+#if defined(HAVE_ZLIB)
+                } else {
+                    z_stream z_copy;
+
+                    err = inflateCopy(&z_copy,matvar->z);
+                    InflateSkipData(mat,&z_copy,data_type,start);
+                    for ( i = 0; i < edge; i++ ) {
+                        ReadCompressedInt64Data(mat,&z_copy,(mat_int64_t*)data+i,
+                            data_type,1);
+                        InflateSkipData(mat,&z_copy,data_type,stride);
+                    }
+                    inflateEnd(&z_copy);
+#endif
+                }
+                break;
+#endif /* HAVE_MAT_INT64_T */
+#ifdef HAVE_MAT_UINT64_T
+            case MAT_C_UINT64:
+                matvar->data_type = MAT_T_UINT64;
+                matvar->data_size = sizeof(mat_uint64_t);
+                if ( matvar->compression == COMPRESSION_NONE ) {
+                    stride *= Mat_SizeOf(data_type);
+                    for ( i = 0; i < edge; i++ ) {
+                        ReadInt64Data(mat,(mat_int64_t*)data+i,data_type,1);
+                        fseek(mat->fp,stride,SEEK_CUR);
+                    }
+#if defined(HAVE_ZLIB)
+                } else {
+                    z_stream z_copy;
+
+                    err = inflateCopy(&z_copy,matvar->z);
+                    InflateSkipData(mat,&z_copy,data_type,start);
+                    for ( i = 0; i < edge; i++ ) {
+                        ReadCompressedInt64Data(mat,&z_copy,(mat_int64_t*)data+i,
+                            data_type,1);
+                        InflateSkipData(mat,&z_copy,data_type,stride);
+                    }
+                    inflateEnd(&z_copy);
+#endif
+                }
+                break;
+#endif /* HAVE_MAT_UINT64_T */
             case MAT_C_INT32:
                 matvar->data_type = MAT_T_INT32;
                 matvar->data_size = sizeof(mat_int32_t);
@@ -1828,6 +1888,8 @@ Mat_VarWriteData(mat_t *mat,matvar_t *matvar,void *data,
             switch ( matvar->class_type ) {
                 case MAT_C_DOUBLE:
                 case MAT_C_SINGLE:
+                case MAT_C_INT64:
+                case MAT_C_UINT64:
                 case MAT_C_INT32:
                 case MAT_C_UINT32:
                 case MAT_C_INT16:

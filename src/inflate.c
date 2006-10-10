@@ -49,7 +49,7 @@ InflateSkip(mat_t *mat, z_stream *z, int nbytes)
     }
     z->avail_out = n;
     z->next_out  = uncomp_buf;
-    err = inflate(z,Z_NO_FLUSH);
+    err = inflate(z,Z_FULL_FLUSH);
     if ( err == Z_STREAM_END ) {
         return bytesread;
     } else if ( err != Z_OK ) {
@@ -68,12 +68,12 @@ InflateSkip(mat_t *mat, z_stream *z, int nbytes)
             z->avail_in += fread(comp_buf,1,n,mat->fp);
             bytesread   += z->avail_in;
         }
-        err = inflate(z,Z_NO_FLUSH);
+        err = inflate(z,Z_FULL_FLUSH);
         if ( err == Z_STREAM_END ) {
             break;
         } else if ( err != Z_OK ) {
             Mat_Critical("InflateSkip: inflate returned %d",err);
-            return bytesread;
+            break;
         }
         if ( !z->avail_out ) {
             cnt         += n;
@@ -84,7 +84,8 @@ InflateSkip(mat_t *mat, z_stream *z, int nbytes)
     }
 
     if ( z->avail_in ) {
-        fseek(mat->fp,-(int)z->avail_in,SEEK_CUR);
+        long offset = -(long)z->avail_in;
+        fseek(mat->fp,offset,SEEK_CUR);
         bytesread -= z->avail_in;
         z->avail_in = 0;
     }
@@ -177,6 +178,16 @@ InflateSkipData(mat_t *mat,z_stream *z,int data_type,int len)
         case MAT_T_SINGLE:
             data_size = sizeof(float);
             break;
+#ifdef HAVE_MAT_INT64_T
+        case MAT_T_INT64:
+            data_size = sizeof(mat_int64_t);
+            break;
+#endif /* HAVE_MAT_INT64_T */
+#ifdef HAVE_MAT_UINT64_T
+        case MAT_T_UINT64:
+            data_size = sizeof(mat_uint64_t);
+            break;
+#endif /* HAVE_MAT_UINT64_T */
         case MAT_T_INT32:
             data_size = sizeof(mat_int32_t);
             break;
@@ -656,7 +667,7 @@ InflateData(mat_t *mat, z_stream *z, void *buf, int nBytes)
             break;
         } else if ( err != Z_OK && err != Z_BUF_ERROR ) {
             Mat_Critical("InflateData: inflate returned %d",err);
-            return bytesread;
+            break;
         }
     }
 

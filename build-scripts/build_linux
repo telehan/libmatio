@@ -42,19 +42,19 @@ case $CC in
     CFLAGS="-c9x -O2 -Kieee"
     ;;
   *gcc*)
-    CFLAGS="-std=c99 -O2 -fno-fast-math"
+    CFLAGS="-std=c99 -O2 -fno-fast-math -g -pg"
     ;;
 esac
 
 DEFAULT_OPTS="--prefix=$PREFIX --exec-prefix=$PREFIX --with-pic"
 LIBDIR_SUFFIX="--with-libdir-suffix=$LIBDIR_SUFFIX"
 
-DEBUG="--enable-debug"
+#DEBUG="--enable-debug"
 ZLIB_OPTS="--with-zlib=$PREFIX"
 ZLIB_OPTS="--with-zlib"
 HDF5_OPTS="--with-hdf5=/opt/hdf5"
 DOCS_OPTS="--enable-docs=no"
-TEST_OPTS="--enable-test=no"
+TEST_OPTS="--enable-test=yes"
 FORTRAN="--enable-fortran=no"
 
 $thisdir/../configure CC=$CC CFLAGS="$CFLAGS" \
