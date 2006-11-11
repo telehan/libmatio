@@ -1219,6 +1219,7 @@ test_writenan(void)
     int        err = 0, i;
     int        dims[2] = {5,5};
     double     data[25]={0.0,};
+    double     zero = 0.0;
     mat_t    *mat;
     matvar_t *matvar;
     
@@ -1226,7 +1227,7 @@ test_writenan(void)
          data[i] = i+1;
 
     for ( i = 0; i < 25; i+= 6 )
-        data[i] = 0.0/0.0;
+        data[i] = 0.0/zero;
 
     mat = Mat_Create("test_writenan.mat",NULL,mat_file_ver);
     if ( mat != NULL ) {
@@ -1247,6 +1248,7 @@ test_writeinf(void)
     int        err = 0, i;
     int        dims[2] = {5,5};
     double     data[25]={0.0,};
+    double     zero = 0.0;
     mat_t    *mat;
     matvar_t *matvar;
     
@@ -1254,7 +1256,7 @@ test_writeinf(void)
          data[i] = i+1;
 
     for ( i = 0; i < 25; i+= 6 )
-        data[i] = 1.0/0.0;
+        data[i] = 1.0/zero;
 
     mat = Mat_Create("test_writeinf.mat",NULL,mat_file_ver);
     if ( mat != NULL ) {
