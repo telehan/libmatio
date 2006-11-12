@@ -44,7 +44,16 @@ subdir = src
 DIST_COMMON = $(am__include_HEADERS_DIST) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/matioConfig.h.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/config/matio_hdf5.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/getopt/m4/getopt.m4 \
+	$(top_srcdir)/getopt/m4/gnulib-comp.m4 \
+	$(top_srcdir)/getopt/m4/onceonly_2_57.m4 \
+	$(top_srcdir)/getopt/m4/unistd_h.m4 \
+	$(top_srcdir)/config/libtool.m4 \
+	$(top_srcdir)/config/ltoptions.m4 \
+	$(top_srcdir)/config/ltsugar.m4 \
+	$(top_srcdir)/config/ltversion.m4 \
+	$(top_srcdir)/config/matio_getopt_long.m4 \
+	$(top_srcdir)/config/matio_hdf5.m4 \
 	$(top_srcdir)/config/matio_int16_t.m4 \
 	$(top_srcdir)/config/matio_int32_t.m4 \
 	$(top_srcdir)/config/matio_int64_t.m4 \
@@ -140,6 +149,9 @@ FCFLAGS = @FCFLAGS@
 FCLDFLAGS = @FCLDFLAGS@
 FCLIBS = @FCLIBS@
 FGREP = @FGREP@
+GETOPT_H = @GETOPT_H@
+GL_COND_LIBTOOL_FALSE = @GL_COND_LIBTOOL_FALSE@
+GL_COND_LIBTOOL_TRUE = @GL_COND_LIBTOOL_TRUE@
 GREP = @GREP@
 HAVE_HDF5_FALSE = @HAVE_HDF5_FALSE@
 HAVE_HDF5_TRUE = @HAVE_HDF5_TRUE@
@@ -166,6 +178,8 @@ MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
 MAT73_FALSE = @MAT73_FALSE@
 MAT73_TRUE = @MAT73_TRUE@
+NEED_GETOPT_FALSE = @NEED_GETOPT_FALSE@
+NEED_GETOPT_TRUE = @NEED_GETOPT_TRUE@
 NM = @NM@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
@@ -185,6 +199,7 @@ SIZEOF_VOID_P = @SIZEOF_VOID_P@
 STRIP = @STRIP@
 SUN_FALSE = @SUN_FALSE@
 SUN_TRUE = @SUN_TRUE@
+UNISTD_H = @UNISTD_H@
 VERSION = @VERSION@
 WINNT_FALSE = @WINNT_FALSE@
 WINNT_TRUE = @WINNT_TRUE@
@@ -211,6 +226,8 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+gl_LIBOBJS = @gl_LIBOBJS@
+gl_LTLIBOBJS = @gl_LTLIBOBJS@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@

@@ -17,6 +17,8 @@ AC_DEFINE_UNQUOTED(MATIO_RELEASE_LEVEL,1)
 PACKAGE_RELEASE_DATE="7 September 2006"
 AC_SUBST(PACKAGE_RELEASE_DATE)
 
+gl_INIT()
+
 AC_ARG_VAR([FCLDFLAGS],[Fortran compiler-specific flags at link time])
 
 # Enable fortran interface
@@ -33,6 +35,8 @@ dnl
 dnl  Build programs, C compiler, F77 compiler, make, install, etc.
 dnl
 AC_PROG_CC([pgcc icc gcc cc])
+
+gl_EARLY()
 
 case $CC in
     *pgcc*)
@@ -162,12 +166,17 @@ AC_STDC_HEADERS
 AC_CHECK_HEADER([inttypes.h],[AC_DEFINE_UNQUOTED([HAVE_INTTYPES_H])])
 AC_CHECK_HEADER([stdint.h],[AC_DEFINE_UNQUOTED([HAVE_STDINT_H])])
 AC_CHECK_HEADER([strings.h],[AC_DEFINE_UNQUOTED([HAVE_STRINGS_H])])
-AC_CHECK_SIZEOF(double)
-AC_CHECK_SIZEOF(float)
-AC_CHECK_SIZEOF(int)
-AC_CHECK_SIZEOF(short)
-AC_CHECK_SIZEOF(char)
-AC_CHECK_SIZEOF(void *)
+AC_CHECK_HEADER([unistd.h],[AC_DEFINE_UNQUOTED([HAVE_UNISTD_H])])
+
+MATIO_CHECK_GETOPT_LONG
+gl_GETOPT()
+
+AC_CHECK_SIZEOF([double])
+AC_CHECK_SIZEOF([float])
+AC_CHECK_SIZEOF([int])
+AC_CHECK_SIZEOF([short])
+AC_CHECK_SIZEOF([char])
+AC_CHECK_SIZEOF([void *])
 
 dnl
 dnl Substitute size of int and void * to matio_t.inc
@@ -404,6 +413,8 @@ AM_CONDITIONAL(ENABLE_FORTRAN, test "$enable_fortran" = "yes" )
 AC_CONFIG_FILES([Makefile \
                  matio.pc \
                  src/Makefile \
+                 getopt/lib/Makefile \
+                 tools/Makefile \
                  test/Makefile \
                  doxygen/Makefile])
 AC_OUTPUT

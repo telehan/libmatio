@@ -43,7 +43,16 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	config/install-sh config/ltmain.sh config/missing
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/config/matio_hdf5.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/getopt/m4/getopt.m4 \
+	$(top_srcdir)/getopt/m4/gnulib-comp.m4 \
+	$(top_srcdir)/getopt/m4/onceonly_2_57.m4 \
+	$(top_srcdir)/getopt/m4/unistd_h.m4 \
+	$(top_srcdir)/config/libtool.m4 \
+	$(top_srcdir)/config/ltoptions.m4 \
+	$(top_srcdir)/config/ltsugar.m4 \
+	$(top_srcdir)/config/ltversion.m4 \
+	$(top_srcdir)/config/matio_getopt_long.m4 \
+	$(top_srcdir)/config/matio_hdf5.m4 \
 	$(top_srcdir)/config/matio_int16_t.m4 \
 	$(top_srcdir)/config/matio_int32_t.m4 \
 	$(top_srcdir)/config/matio_int64_t.m4 \
@@ -83,7 +92,7 @@ pkgconfigDATA_INSTALL = $(INSTALL_DATA)
 DATA = $(data_DATA) $(pkgconfig_DATA)
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = src test doxygen
+DIST_SUBDIRS = src getopt/lib tools test doxygen
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -130,6 +139,9 @@ FCFLAGS = @FCFLAGS@
 FCLDFLAGS = @FCLDFLAGS@
 FCLIBS = @FCLIBS@
 FGREP = @FGREP@
+GETOPT_H = @GETOPT_H@
+GL_COND_LIBTOOL_FALSE = @GL_COND_LIBTOOL_FALSE@
+GL_COND_LIBTOOL_TRUE = @GL_COND_LIBTOOL_TRUE@
 GREP = @GREP@
 HAVE_HDF5_FALSE = @HAVE_HDF5_FALSE@
 HAVE_HDF5_TRUE = @HAVE_HDF5_TRUE@
@@ -156,6 +168,8 @@ MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
 MAT73_FALSE = @MAT73_FALSE@
 MAT73_TRUE = @MAT73_TRUE@
+NEED_GETOPT_FALSE = @NEED_GETOPT_FALSE@
+NEED_GETOPT_TRUE = @NEED_GETOPT_TRUE@
 NM = @NM@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
@@ -175,6 +189,7 @@ SIZEOF_VOID_P = @SIZEOF_VOID_P@
 STRIP = @STRIP@
 SUN_FALSE = @SUN_FALSE@
 SUN_TRUE = @SUN_TRUE@
+UNISTD_H = @UNISTD_H@
 VERSION = @VERSION@
 WINNT_FALSE = @WINNT_FALSE@
 WINNT_TRUE = @WINNT_TRUE@
@@ -201,6 +216,8 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+gl_LIBOBJS = @gl_LIBOBJS@
+gl_LTLIBOBJS = @gl_LTLIBOBJS@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -227,14 +244,15 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 AUTOMAKE_OPTIONS = foreign 1.8 no-dependencies
-ACLOCAL_AMFLAGS = -Iconfig
+ACLOCAL_AMFLAGS = -I config -I getopt/m4
 EXTRA_DIST = matio.pc.in
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = matio.pc
 @DOCS_INSTALL_TRUE@DOCS = doxygen
 @BUILD_TEST_TRUE@data_DATA = share/test_file.mat share/test_file_v6.mat
 @BUILD_TEST_TRUE@TEST = test
-SUBDIRS = src $(TEST) $(DOCS)
+@NEED_GETOPT_TRUE@GETOPT = getopt/lib
+SUBDIRS = src $(GETOPT) tools $(TEST) $(DOCS)
 dosubst = sed -e 's,[@]PACKAGE[@],$(PACKAGE),g' \
               -e 's,[@]VERSION[@],$(VERSION),g' \
               -e 's,\/,\\,g'
@@ -459,7 +477,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/. $(distdir)/config $(distdir)/src/fortran
+	$(mkdir_p) $(distdir)/. $(distdir)/config $(distdir)/getopt/m4 $(distdir)/src/fortran
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \
