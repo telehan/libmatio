@@ -203,6 +203,7 @@ Mat_Close( mat_t *mat )
 #ifdef MAT73
     if ( mat->version == 0x0200 ) {
         H5Fclose(*(hid_t*)mat->fp);
+        free(mat->fp);
         mat->fp = NULL;
     }
 #endif
