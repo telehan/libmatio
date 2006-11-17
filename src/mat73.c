@@ -265,6 +265,195 @@ Mat_data_type_to_hid_t(enum matio_types data_type)
     }
 }
 
+static int
+Mat_WriteNextStructField73(hid_t id,matvar_t *matvar,const char *name)
+{
+    int k;
+    hid_t mspace_id,dset_id,attr_type_id,attr_id,aspace_id;
+
+    if ( NULL == matvar )
+        return -1;
+
+    switch ( matvar->class_type ) {
+        case MAT_C_DOUBLE:
+        case MAT_C_SINGLE:
+        case MAT_C_INT32:
+        case MAT_C_UINT32:
+        case MAT_C_INT16:
+        case MAT_C_UINT16:
+        case MAT_C_INT8:
+        case MAT_C_UINT8:
+            for ( k = 0; k < matvar->rank; k++ )
+                perm_dims[k] = matvar->dims[matvar->rank-k-1];
+
+            mspace_id = H5Screate_simple(matvar->rank,perm_dims,NULL);
+            dset_id = H5Dcreate(id,name,
+                Mat_class_type_to_hid_t(matvar->class_type),mspace_id,
+                H5P_DEFAULT);
+            attr_type_id = H5Tcopy(H5T_C_S1);
+            H5Tset_size(attr_type_id,
+                        strlen(Mat_class_names[matvar->class_type])+1);
+            aspace_id = H5Screate(H5S_SCALAR);
+            attr_id = H5Acreate(dset_id,"MATLAB_class",attr_type_id,
+                                aspace_id,H5P_DEFAULT);
+            H5Awrite(attr_id,attr_type_id,Mat_class_names[matvar->class_type]);
+            H5Sclose(aspace_id);
+            H5Aclose(attr_id);
+            H5Tclose(attr_type_id);
+            H5Dwrite(dset_id,Mat_data_type_to_hid_t(matvar->data_type),
+                H5S_ALL,H5S_ALL,H5P_DEFAULT,matvar->data);
+            H5Dclose(dset_id);
+            H5Sclose(mspace_id);
+            break;
+        case MAT_C_CHAR:
+        {
+            int matlab_int_decode = 2;
+            for ( k = 0; k < matvar->rank; k++ )
+                perm_dims[k] = matvar->dims[matvar->rank-k-1];
+
+            mspace_id = H5Screate_simple(matvar->rank,perm_dims,NULL);
+            switch ( matvar->data_type ) {
+                case MAT_T_UTF32:
+                case MAT_T_INT32:
+                case MAT_T_UINT32:
+                    /* Not sure matlab will actually handle this */
+                    dset_id = H5Dcreate(id,name,
+                        Mat_class_type_to_hid_t(MAT_C_UINT32),mspace_id,
+                        H5P_DEFAULT);
+                    break;
+                case MAT_T_UTF16:
+                case MAT_T_UTF8:
+                case MAT_T_INT16:
+                case MAT_T_UINT16:
+                case MAT_T_INT8:
+                case MAT_T_UINT8:
+                    dset_id = H5Dcreate(id,name,
+                        Mat_class_type_to_hid_t(MAT_C_UINT16),mspace_id,
+                        H5P_DEFAULT);
+                    break;
+            }
+            attr_type_id = H5Tcopy(H5T_C_S1);
+            H5Tset_size(attr_type_id,
+                        strlen(Mat_class_names[matvar->class_type])+1);
+            aspace_id = H5Screate(H5S_SCALAR);
+            attr_id = H5Acreate(dset_id,"MATLAB_class",attr_type_id,
+                                aspace_id,H5P_DEFAULT);
+            H5Awrite(attr_id,attr_type_id,Mat_class_names[matvar->class_type]);
+            H5Aclose(attr_id);
+            H5Tclose(attr_type_id);
+
+            attr_type_id = H5Tcopy(H5T_NATIVE_INT);
+            attr_id = H5Acreate(dset_id,"MATLAB_int_decode",attr_type_id,
+                                aspace_id,H5P_DEFAULT);
+            H5Awrite(attr_id,attr_type_id,&matlab_int_decode);
+            H5Tclose(attr_type_id);
+            H5Sclose(aspace_id);
+
+            H5Dwrite(dset_id,Mat_data_type_to_hid_t(matvar->data_type),
+                H5S_ALL,H5S_ALL,H5P_DEFAULT,matvar->data);
+            H5Dclose(dset_id);
+            H5Sclose(mspace_id);
+            break;
+        }
+        case MAT_C_STRUCT:
+        {
+            hid_t struct_id,str_type_id,fieldnames_id;
+            hsize_t    nfields,nmemb;
+            matvar_t **fields;
+            hvl_t     *fieldnames;
+
+            struct_id = H5Gcreate(id,name,0);
+            if ( struct_id < 0 ) {
+                Mat_Critical("Error creating group for struct %s",name);
+            } else {
+                str_type_id = H5Tcopy(H5T_C_S1);
+                H5Tset_size(str_type_id,7);
+                aspace_id = H5Screate(H5S_SCALAR);
+                attr_id = H5Acreate(struct_id,"MATLAB_class",str_type_id,
+                                    aspace_id,H5P_DEFAULT);
+                H5Awrite(attr_id,str_type_id,"struct");
+                H5Aclose(attr_id);
+
+                nmemb = matvar->dims[0];
+                for ( k = 1; k < matvar->rank; k++ )
+                    nmemb *= matvar->dims[k];
+                nfields = matvar->nbytes / (nmemb*matvar->data_size);
+
+                fieldnames = malloc(nfields*sizeof(*fieldnames));
+                fields     = matvar->data;
+                for ( k = 0; k < nfields; k++ ) {
+                    fieldnames[k].len = strlen(fields[k]->name);
+                    fieldnames[k].p   = fields[k]->name;
+                }
+                H5Tset_size(str_type_id,1);
+                fieldnames_id = H5Tvlen_create(str_type_id);
+                aspace_id     = H5Screate_simple(1,&nfields,NULL);
+                attr_id = H5Acreate(struct_id,"MATLAB_fields",fieldnames_id,
+                                    aspace_id,H5P_DEFAULT);
+                H5Awrite(attr_id,fieldnames_id,fieldnames);
+                H5Aclose(attr_id);
+                H5Sclose(aspace_id);
+                H5Tclose(fieldnames_id);
+                H5Tclose(str_type_id);
+                free(fieldnames);
+
+                if ( 1 == nmemb ) {
+                    for ( k = 0; k < nmemb*nfields; k++ )
+                        Mat_WriteNextStructField73(struct_id,fields[k],
+                            fields[k]->name);
+                } else {
+                    hid_t refs_id;
+
+                    if ((refs_id=H5Gopen(id,"#refs#") < 0 ))
+                        refs_id = H5Gcreate(id,"#refs#",0);
+                    
+                    if ( refs_id > -1 ) {
+                        char name[64];
+                        hobj_ref_t **refs;
+                        hsize_t      num_obj;
+                        int l;
+
+                        (void)H5Gget_num_objs(refs_id,&num_obj);
+                        refs = malloc(nfields*sizeof(*refs));
+                        for ( l = 0; l < nfields; l++ )
+                            refs[l] = malloc(nmemb*sizeof(*refs[l]));
+
+                        for ( k = 0; k < nmemb; k++ ) {
+                            for ( l = 0; l < nfields; l++ ) {
+                                sprintf(name,"%d",num_obj+k*nfields+l);
+                                Mat_WriteNextStructField73(refs_id,
+                                    fields[k*nfields+l],name);
+                                sprintf(name,"/#refs#/%d",num_obj+k*nfields+l);
+                                H5Rcreate(refs[l]+k,id,name,
+                                          H5R_OBJECT,-1);
+                            }
+                        }
+                        for ( k = 0; k < matvar->rank; k++ )
+                            perm_dims[k] = matvar->dims[matvar->rank-k-1];
+
+                        mspace_id=H5Screate_simple(matvar->rank,perm_dims,NULL);
+                        for ( l = 0; l < nfields; l++ ) {
+                            dset_id = H5Dcreate(struct_id,
+                                fields[l]->name,H5T_STD_REF_OBJ,mspace_id,
+                                H5P_DEFAULT);
+                            H5Dwrite(dset_id,H5T_STD_REF_OBJ,H5S_ALL,H5S_ALL,
+                                H5P_DEFAULT,refs[l]);
+                            H5Dclose(dset_id);
+                            free(refs[l]);
+                        }
+                        free(refs);
+                        H5Sclose(mspace_id);
+                        H5Gclose(refs_id);
+                    }
+                }
+                H5Gclose(struct_id);
+            }
+            break;
+        }
+    }
+    return 0;
+}
+
 /** @brief Creates a new Matlab MAT version 5 file
  *
  * Tries to create a new Matlab MAT file with the given name and optional
@@ -545,5 +734,101 @@ Mat_VarWrite73(mat_t *mat,matvar_t *matvar,int compress)
             H5Sclose(mspace_id);
             break;
         }
+        case MAT_C_STRUCT:
+        {
+            hid_t struct_id,str_type_id,fieldnames_id;
+            hsize_t    nfields,nmemb;
+            matvar_t **fields;
+            hvl_t     *fieldnames;
+
+            struct_id = H5Gcreate(*(hid_t*)mat->fp,matvar->name,0);
+            if ( struct_id < 0 ) {
+                Mat_Critical("Error creating group for struct %s",matvar->name);
+            } else {
+                str_type_id = H5Tcopy(H5T_C_S1);
+                H5Tset_size(str_type_id,7);
+                aspace_id = H5Screate(H5S_SCALAR);
+                attr_id = H5Acreate(struct_id,"MATLAB_class",str_type_id,
+                                    aspace_id,H5P_DEFAULT);
+                H5Awrite(attr_id,str_type_id,"struct");
+                H5Aclose(attr_id);
+
+                nmemb = matvar->dims[0];
+                for ( k = 1; k < matvar->rank; k++ )
+                    nmemb *= matvar->dims[k];
+                nfields = matvar->nbytes / (nmemb*matvar->data_size);
+
+                fieldnames = malloc(nfields*sizeof(*fieldnames));
+                fields     = matvar->data;
+                for ( k = 0; k < nfields; k++ ) {
+                    fieldnames[k].len = strlen(fields[k]->name);
+                    fieldnames[k].p   = fields[k]->name;
+                }
+                H5Tset_size(str_type_id,1);
+                fieldnames_id = H5Tvlen_create(str_type_id);
+                aspace_id     = H5Screate_simple(1,&nfields,NULL);
+                attr_id = H5Acreate(struct_id,"MATLAB_fields",fieldnames_id,
+                                    aspace_id,H5P_DEFAULT);
+                H5Awrite(attr_id,fieldnames_id,fieldnames);
+                H5Aclose(attr_id);
+                H5Sclose(aspace_id);
+                H5Tclose(fieldnames_id);
+                H5Tclose(str_type_id);
+                free(fieldnames);
+
+                if ( 1 == nmemb ) {
+                    for ( k = 0; k < nmemb*nfields; k++ )
+                        Mat_WriteNextStructField73(struct_id,fields[k],
+                            fields[k]->name);
+                } else {
+                    hid_t refs_id;
+                    if ((refs_id=H5Gopen(*(hid_t*)mat->fp,"#refs#") < 0 )) {
+                        refs_id = H5Gcreate(*(hid_t*)mat->fp,"#refs#",0);
+                    }
+                    
+                    if ( refs_id > -1 ) {
+                        char name[64];
+                        hobj_ref_t **refs;
+                        hsize_t      num_obj;
+                        int l;
+
+                        (void)H5Gget_num_objs(refs_id,&num_obj);
+                        refs = malloc(nfields*sizeof(*refs));
+                        for ( l = 0; l < nfields; l++ )
+                            refs[l] = malloc(nmemb*sizeof(*refs[l]));
+
+                        for ( k = 0; k < nmemb; k++ ) {
+                            for ( l = 0; l < nfields; l++ ) {
+                                sprintf(name,"%d",num_obj+k*nfields+l);
+                                Mat_WriteNextStructField73(refs_id,
+                                    fields[k*nfields+l],name);
+                                sprintf(name,"/#refs#/%d",num_obj+k*nfields+l);
+                                H5Rcreate(refs[l]+k,*(hid_t*)mat->fp,name,
+                                          H5R_OBJECT,-1);
+                            }
+                        }
+                        for ( k = 0; k < matvar->rank; k++ )
+                            perm_dims[k] = matvar->dims[matvar->rank-k-1];
+
+                        mspace_id=H5Screate_simple(matvar->rank,perm_dims,NULL);
+                        for ( l = 0; l < nfields; l++ ) {
+                            dset_id = H5Dcreate(struct_id,
+                                fields[l]->name,H5T_STD_REF_OBJ,mspace_id,
+                                H5P_DEFAULT);
+                            H5Dwrite(dset_id,H5T_STD_REF_OBJ,H5S_ALL,H5S_ALL,
+                                H5P_DEFAULT,refs[l]);
+                            H5Dclose(dset_id);
+                            free(refs[l]);
+                        }
+                        free(refs);
+                        H5Sclose(mspace_id);
+                        H5Gclose(refs_id);
+                    }
+                }
+                H5Gclose(struct_id);
+            }
+            break;
+        }
     }
+    return 0;
 }
