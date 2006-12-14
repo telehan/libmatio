@@ -200,22 +200,24 @@ Mat_Open(const char *matname,int mode)
 int
 Mat_Close( mat_t *mat )
 {
+    if ( NULL != mat ) {
 #ifdef MAT73
-    if ( mat->version == 0x0200 ) {
-        H5Fclose(*(hid_t*)mat->fp);
-        free(mat->fp);
-        mat->fp = NULL;
-    }
+        if ( mat->version == 0x0200 ) {
+            H5Fclose(*(hid_t*)mat->fp);
+            free(mat->fp);
+            mat->fp = NULL;
+        }
 #endif
-    if ( mat->fp )
-        fclose(mat->fp);
-    if ( mat->header )
-        free(mat->header);
-    if ( mat->subsys_offset )
-        free(mat->subsys_offset);
-    if ( mat->filename )
-        free(mat->filename);
-    free(mat);
+        if ( mat->fp )
+            fclose(mat->fp);
+        if ( mat->header )
+            free(mat->header);
+        if ( mat->subsys_offset )
+            free(mat->subsys_offset);
+        if ( mat->filename )
+            free(mat->filename);
+        free(mat);
+    }
     return 0;
 }
 
