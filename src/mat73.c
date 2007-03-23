@@ -268,7 +268,7 @@ Mat_data_type_to_hid_t(enum matio_types data_type)
 static int
 Mat_WriteNextStructField73(hid_t id,matvar_t *matvar,const char *name)
 {
-    int k;
+    unsigned long k,numel;
     hid_t mspace_id,dset_id,attr_type_id,attr_id,aspace_id;
 
     if ( NULL == matvar )
@@ -283,27 +283,159 @@ Mat_WriteNextStructField73(hid_t id,matvar_t *matvar,const char *name)
         case MAT_C_UINT16:
         case MAT_C_INT8:
         case MAT_C_UINT8:
-            for ( k = 0; k < matvar->rank; k++ )
+            numel = 1;
+            for ( k = 0; k < matvar->rank; k++ ) {
                 perm_dims[k] = matvar->dims[matvar->rank-k-1];
+                numel *= perm_dims[k];
+            }
 
-            mspace_id = H5Screate_simple(matvar->rank,perm_dims,NULL);
-            dset_id = H5Dcreate(id,name,
-                Mat_class_type_to_hid_t(matvar->class_type),mspace_id,
-                H5P_DEFAULT);
-            attr_type_id = H5Tcopy(H5T_C_S1);
-            H5Tset_size(attr_type_id,
-                        strlen(Mat_class_names[matvar->class_type])+1);
-            aspace_id = H5Screate(H5S_SCALAR);
-            attr_id = H5Acreate(dset_id,"MATLAB_class",attr_type_id,
-                                aspace_id,H5P_DEFAULT);
-            H5Awrite(attr_id,attr_type_id,Mat_class_names[matvar->class_type]);
-            H5Sclose(aspace_id);
-            H5Aclose(attr_id);
-            H5Tclose(attr_type_id);
-            H5Dwrite(dset_id,Mat_data_type_to_hid_t(matvar->data_type),
-                H5S_ALL,H5S_ALL,H5P_DEFAULT,matvar->data);
-            H5Dclose(dset_id);
-            H5Sclose(mspace_id);
+            if ( matvar->isComplex ) {
+                hid_t h5_complex,h5_complex_base;
+                void *buf;
+
+                h5_complex_base = Mat_class_type_to_hid_t(matvar->class_type);
+                h5_complex      = H5Tcreate(H5T_COMPOUND,
+                                      2*H5Tget_size(h5_complex_base));
+                H5Tinsert(h5_complex,"real",0,h5_complex_base);
+                H5Tinsert(h5_complex,"imag",H5Tget_size(h5_complex_base),
+                          h5_complex_base);
+
+                /* Not very memory efficient! */
+                buf = malloc(2*numel*H5Tget_size(h5_complex_base));
+                if ( NULL != buf ) {
+                    switch ( matvar->class_type ) {
+                        case MAT_C_DOUBLE:
+                        {
+                            double *dst = buf,
+                                   *r=((struct ComplexSplit*)matvar->data)->Re,
+                                   *i=((struct ComplexSplit*)matvar->data)->Im;
+                            for ( k = numel; k--; ) {
+                                *dst++ = *r++;
+                                *dst++ = *i++;
+                            }
+                            break;
+                        }
+                        case MAT_C_SINGLE:
+                        {
+                            float *dst = buf,
+                                  *r=((struct ComplexSplit*)matvar->data)->Re,
+                                  *i=((struct ComplexSplit*)matvar->data)->Im;
+                            for ( k = numel; k--; ) {
+                                *dst++ = *r++;
+                                *dst++ = *i++;
+                            }
+                            break;
+                        }
+                        case MAT_C_INT32:
+                        {
+                            mat_int32_t *dst = buf,
+                                  *r=((struct ComplexSplit*)matvar->data)->Re,
+                                  *i=((struct ComplexSplit*)matvar->data)->Im;
+                            for ( k = numel; k--; ) {
+                                *dst++ = *r++;
+                                *dst++ = *i++;
+                            }
+                            break;
+                        }
+                        case MAT_C_UINT32:
+                        {
+                            mat_uint32_t *dst = buf,
+                                  *r=((struct ComplexSplit*)matvar->data)->Re,
+                                  *i=((struct ComplexSplit*)matvar->data)->Im;
+                            for ( k = numel; k--; ) {
+                                *dst++ = *r++;
+                                *dst++ = *i++;
+                            }
+                            break;
+                        }
+                        case MAT_C_INT16:
+                        {
+                            mat_int16_t *dst = buf,
+                                  *r=((struct ComplexSplit*)matvar->data)->Re,
+                                  *i=((struct ComplexSplit*)matvar->data)->Im;
+                            for ( k = numel; k--; ) {
+                                *dst++ = *r++;
+                                *dst++ = *i++;
+                            }
+                            break;
+                        }
+                        case MAT_C_UINT16:
+                        {
+                            mat_uint16_t *dst = buf,
+                                  *r=((struct ComplexSplit*)matvar->data)->Re,
+                                  *i=((struct ComplexSplit*)matvar->data)->Im;
+                            for ( k = numel; k--; ) {
+                                *dst++ = *r++;
+                                *dst++ = *i++;
+                            }
+                            break;
+                        }
+                        case MAT_C_INT8:
+                        {
+                            mat_int8_t *dst = buf,
+                                  *r=((struct ComplexSplit*)matvar->data)->Re,
+                                  *i=((struct ComplexSplit*)matvar->data)->Im;
+                            for ( k = numel; k--; ) {
+                                *dst++ = *r++;
+                                *dst++ = *i++;
+                            }
+                            break;
+                        }
+                        case MAT_C_UINT8:
+                        {
+                            mat_uint8_t *dst = buf,
+                                  *r=((struct ComplexSplit*)matvar->data)->Re,
+                                  *i=((struct ComplexSplit*)matvar->data)->Im;
+                            for ( k = numel; k--; ) {
+                                *dst++ = *r++;
+                                *dst++ = *i++;
+                            }
+                            break;
+                        }
+                    }
+                    mspace_id = H5Screate_simple(matvar->rank,perm_dims,NULL);
+                    dset_id = H5Dcreate(id,name,h5_complex,mspace_id,
+                                        H5P_DEFAULT);
+                    attr_type_id = H5Tcopy(H5T_C_S1);
+                    H5Tset_size(attr_type_id,
+                                strlen(Mat_class_names[matvar->class_type])+1);
+                    aspace_id = H5Screate(H5S_SCALAR);
+                    attr_id = H5Acreate(dset_id,"MATLAB_class",attr_type_id,
+                                        aspace_id,H5P_DEFAULT);
+                    H5Awrite(attr_id,attr_type_id,
+                             Mat_class_names[matvar->class_type]);
+                    H5Sclose(aspace_id);
+                    H5Aclose(attr_id);
+                    H5Tclose(attr_type_id);
+                    H5Dwrite(dset_id,h5_complex,H5S_ALL,H5S_ALL,H5P_DEFAULT,
+                             buf);
+                    H5Dclose(dset_id);
+                    H5Sclose(mspace_id);
+                    free(buf);
+                }
+                /* h5_complex_base is not a copy, so don't release it */
+                H5Tclose(h5_complex);
+            } else {
+                mspace_id = H5Screate_simple(matvar->rank,perm_dims,NULL);
+                dset_id = H5Dcreate(id,name,
+                    Mat_class_type_to_hid_t(matvar->class_type),mspace_id,
+                    H5P_DEFAULT);
+                attr_type_id = H5Tcopy(H5T_C_S1);
+                H5Tset_size(attr_type_id,
+                            strlen(Mat_class_names[matvar->class_type])+1);
+                aspace_id = H5Screate(H5S_SCALAR);
+                attr_id = H5Acreate(dset_id,"MATLAB_class",attr_type_id,
+                                    aspace_id,H5P_DEFAULT);
+                H5Awrite(attr_id,attr_type_id,
+                         Mat_class_names[matvar->class_type]);
+                H5Sclose(aspace_id);
+                H5Aclose(attr_id);
+                H5Tclose(attr_type_id);
+                H5Dwrite(dset_id,Mat_data_type_to_hid_t(matvar->data_type),
+                    H5S_ALL,H5S_ALL,H5P_DEFAULT,matvar->data);
+                H5Dclose(dset_id);
+                H5Sclose(mspace_id);
+            }
             break;
         case MAT_C_CHAR:
         {
@@ -361,7 +493,11 @@ Mat_WriteNextStructField73(hid_t id,matvar_t *matvar,const char *name)
             hsize_t    nfields,nmemb;
             matvar_t **fields;
             hvl_t     *fieldnames;
+            char       id_name[128] = {'\0',};
+            int        is_ref;
 
+            (void)H5Iget_name(id,id_name,127);
+            is_ref = !strcmp(id_name,"/#refs#");
             struct_id = H5Gcreate(id,name,0);
             if ( struct_id < 0 ) {
                 Mat_Critical("Error creating group for struct %s",name);
@@ -404,26 +540,29 @@ Mat_WriteNextStructField73(hid_t id,matvar_t *matvar,const char *name)
                 } else {
                     hid_t refs_id;
 
-                    if ((refs_id=H5Gopen(id,"#refs#") < 0 ))
-                        refs_id = H5Gcreate(id,"#refs#",0);
-                    
+                    if (is_ref) {
+                        refs_id = id;
+                    } else {
+                        if ((refs_id=H5Gopen(id,"/#refs#") < 0 ))
+                            refs_id = H5Gcreate(id,"/#refs#",0);
+                    }
                     if ( refs_id > -1 ) {
                         char name[64];
                         hobj_ref_t **refs;
                         hsize_t      num_obj;
                         int l;
 
-                        (void)H5Gget_num_objs(refs_id,&num_obj);
                         refs = malloc(nfields*sizeof(*refs));
                         for ( l = 0; l < nfields; l++ )
                             refs[l] = malloc(nmemb*sizeof(*refs[l]));
 
                         for ( k = 0; k < nmemb; k++ ) {
                             for ( l = 0; l < nfields; l++ ) {
-                                sprintf(name,"%d",num_obj+k*nfields+l);
+                                (void)H5Gget_num_objs(refs_id,&num_obj);
+                                sprintf(name,"%lu",num_obj);
                                 Mat_WriteNextStructField73(refs_id,
                                     fields[k*nfields+l],name);
-                                sprintf(name,"/#refs#/%d",num_obj+k*nfields+l);
+                                sprintf(name,"/#refs#/%lu",num_obj);
                                 H5Rcreate(refs[l]+k,id,name,
                                           H5R_OBJECT,-1);
                             }
@@ -443,7 +582,8 @@ Mat_WriteNextStructField73(hid_t id,matvar_t *matvar,const char *name)
                         }
                         free(refs);
                         H5Sclose(mspace_id);
-                        H5Gclose(refs_id);
+                        if ( !is_ref )
+                            H5Gclose(refs_id);
                     }
                 }
                 H5Gclose(struct_id);
@@ -647,7 +787,7 @@ Mat_VarReadNextInfo73( mat_t *mat )
 int
 Mat_VarWrite73(mat_t *mat,matvar_t *matvar,int compress)
 {
-    int k;
+    unsigned long k,numel;
     hid_t mspace_id,dset_id,attr_type_id,attr_id,aspace_id;
 
     if ( NULL == mat || NULL == matvar )
@@ -662,8 +802,139 @@ Mat_VarWrite73(mat_t *mat,matvar_t *matvar,int compress)
         case MAT_C_UINT16:
         case MAT_C_INT8:
         case MAT_C_UINT8:
-            for ( k = 0; k < matvar->rank; k++ )
+            numel = 1;
+            for ( k = 0; k < matvar->rank; k++ ) {
                 perm_dims[k] = matvar->dims[matvar->rank-k-1];
+                numel *= perm_dims[k];
+            }
+
+            if ( matvar->isComplex ) {
+                hid_t h5_complex,h5_complex_base;
+                void *buf;
+
+                h5_complex_base = Mat_class_type_to_hid_t(matvar->class_type);
+                h5_complex      = H5Tcreate(H5T_COMPOUND,
+                                      2*H5Tget_size(h5_complex_base));
+                H5Tinsert(h5_complex,"real",0,h5_complex_base);
+                H5Tinsert(h5_complex,"imag",H5Tget_size(h5_complex_base),
+                          h5_complex_base);
+
+                /* Not very memory efficient! */
+                buf = malloc(2*numel*H5Tget_size(h5_complex_base));
+                if ( NULL != buf ) {
+                    switch ( matvar->class_type ) {
+                        case MAT_C_DOUBLE:
+                        {
+                            double *dst = buf,
+                                   *r=((struct ComplexSplit*)matvar->data)->Re,
+                                   *i=((struct ComplexSplit*)matvar->data)->Im;
+                            for ( k = numel; k--; ) {
+                                *dst++ = *r++;
+                                *dst++ = *i++;
+                            }
+                            break;
+                        }
+                        case MAT_C_SINGLE:
+                        {
+                            float *dst = buf,
+                                  *r=((struct ComplexSplit*)matvar->data)->Re,
+                                  *i=((struct ComplexSplit*)matvar->data)->Im;
+                            for ( k = numel; k--; ) {
+                                *dst++ = *r++;
+                                *dst++ = *i++;
+                            }
+                            break;
+                        }
+                        case MAT_C_INT32:
+                        {
+                            mat_int32_t *dst = buf,
+                                  *r=((struct ComplexSplit*)matvar->data)->Re,
+                                  *i=((struct ComplexSplit*)matvar->data)->Im;
+                            for ( k = numel; k--; ) {
+                                *dst++ = *r++;
+                                *dst++ = *i++;
+                            }
+                            break;
+                        }
+                        case MAT_C_UINT32:
+                        {
+                            mat_uint32_t *dst = buf,
+                                  *r=((struct ComplexSplit*)matvar->data)->Re,
+                                  *i=((struct ComplexSplit*)matvar->data)->Im;
+                            for ( k = numel; k--; ) {
+                                *dst++ = *r++;
+                                *dst++ = *i++;
+                            }
+                            break;
+                        }
+                        case MAT_C_INT16:
+                        {
+                            mat_int16_t *dst = buf,
+                                  *r=((struct ComplexSplit*)matvar->data)->Re,
+                                  *i=((struct ComplexSplit*)matvar->data)->Im;
+                            for ( k = numel; k--; ) {
+                                *dst++ = *r++;
+                                *dst++ = *i++;
+                            }
+                            break;
+                        }
+                        case MAT_C_UINT16:
+                        {
+                            mat_uint16_t *dst = buf,
+                                  *r=((struct ComplexSplit*)matvar->data)->Re,
+                                  *i=((struct ComplexSplit*)matvar->data)->Im;
+                            for ( k = numel; k--; ) {
+                                *dst++ = *r++;
+                                *dst++ = *i++;
+                            }
+                            break;
+                        }
+                        case MAT_C_INT8:
+                        {
+                            mat_int8_t *dst = buf,
+                                  *r=((struct ComplexSplit*)matvar->data)->Re,
+                                  *i=((struct ComplexSplit*)matvar->data)->Im;
+                            for ( k = numel; k--; ) {
+                                *dst++ = *r++;
+                                *dst++ = *i++;
+                            }
+                            break;
+                        }
+                        case MAT_C_UINT8:
+                        {
+                            mat_uint8_t *dst = buf,
+                                  *r=((struct ComplexSplit*)matvar->data)->Re,
+                                  *i=((struct ComplexSplit*)matvar->data)->Im;
+                            for ( k = numel; k--; ) {
+                                *dst++ = *r++;
+                                *dst++ = *i++;
+                            }
+                            break;
+                        }
+                    }
+                    mspace_id = H5Screate_simple(matvar->rank,perm_dims,NULL);
+                    dset_id = H5Dcreate(*(hid_t*)mat->fp,matvar->name,
+                        h5_complex,mspace_id,H5P_DEFAULT);
+                    attr_type_id = H5Tcopy(H5T_C_S1);
+                    H5Tset_size(attr_type_id,
+                                strlen(Mat_class_names[matvar->class_type])+1);
+                    aspace_id = H5Screate(H5S_SCALAR);
+                    attr_id = H5Acreate(dset_id,"MATLAB_class",attr_type_id,
+                                        aspace_id,H5P_DEFAULT);
+                    H5Awrite(attr_id,attr_type_id,
+                             Mat_class_names[matvar->class_type]);
+                    H5Sclose(aspace_id);
+                    H5Aclose(attr_id);
+                    H5Tclose(attr_type_id);
+                    H5Dwrite(dset_id,h5_complex,H5S_ALL,H5S_ALL,H5P_DEFAULT,
+                             buf);
+                    H5Dclose(dset_id);
+                    H5Sclose(mspace_id);
+                    free(buf);
+                }
+                /* h5_complex_base is not a copy, so don't release it */
+                H5Tclose(h5_complex);
+            } else {
 
             mspace_id = H5Screate_simple(matvar->rank,perm_dims,NULL);
             dset_id = H5Dcreate(*(hid_t*)mat->fp,matvar->name,
@@ -683,6 +954,7 @@ Mat_VarWrite73(mat_t *mat,matvar_t *matvar,int compress)
                 H5S_ALL,H5S_ALL,H5P_DEFAULT,matvar->data);
             H5Dclose(dset_id);
             H5Sclose(mspace_id);
+            }
             break;
         case MAT_C_CHAR:
         {
@@ -782,8 +1054,8 @@ Mat_VarWrite73(mat_t *mat,matvar_t *matvar,int compress)
                             fields[k]->name);
                 } else {
                     hid_t refs_id;
-                    if ((refs_id=H5Gopen(*(hid_t*)mat->fp,"#refs#") < 0 )) {
-                        refs_id = H5Gcreate(*(hid_t*)mat->fp,"#refs#",0);
+                    if ((refs_id=H5Gopen(*(hid_t*)mat->fp,"/#refs#") < 0 )) {
+                        refs_id = H5Gcreate(*(hid_t*)mat->fp,"/#refs#",0);
                     }
                     
                     if ( refs_id > -1 ) {
@@ -792,17 +1064,17 @@ Mat_VarWrite73(mat_t *mat,matvar_t *matvar,int compress)
                         hsize_t      num_obj;
                         int l;
 
-                        (void)H5Gget_num_objs(refs_id,&num_obj);
                         refs = malloc(nfields*sizeof(*refs));
                         for ( l = 0; l < nfields; l++ )
                             refs[l] = malloc(nmemb*sizeof(*refs[l]));
 
                         for ( k = 0; k < nmemb; k++ ) {
                             for ( l = 0; l < nfields; l++ ) {
-                                sprintf(name,"%d",num_obj+k*nfields+l);
+                                (void)H5Gget_num_objs(refs_id,&num_obj);
+                                sprintf(name,"%lu",num_obj);
                                 Mat_WriteNextStructField73(refs_id,
                                     fields[k*nfields+l],name);
-                                sprintf(name,"/#refs#/%d",num_obj+k*nfields+l);
+                                sprintf(name,"/#refs#/%lu",num_obj);
                                 H5Rcreate(refs[l]+k,*(hid_t*)mat->fp,name,
                                           H5R_OBJECT,-1);
                             }
