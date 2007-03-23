@@ -94,23 +94,25 @@ static const char *helptest_copy[] = {
 };
 
 static const char *helptest_write[] = {
-    "TEST: write",
-    "",
-    "Usage: test_mat write",
-    "",
-    "Writes various datasets to test_mat_write.mat",
-    "The output file should have 6 datasets as described below",
-    "",
-    "Dataset Name  Data Type   Rank   Dimensions   Data",
-    "---------------------------------------------------------------",
-    "    d         Double      2      5x10         reshape(1:50,5,10)",
-    "    f         Single      2      5x10         single(reshape(1:50,5,10))",
-    "  i32         Int 32      2      5x10         int32(reshape(1:50,5,10))",
-    "  i16         Int 16      2      5x10         int16(reshape(1:50,5,10))",
-    "   i8         Int  8      2      5x10         int8(reshape(1:50,5,10))",
-    "  str         Char        2      1x14         'This is a string'",
-    "",
-    NULL
+"TEST: write",
+"",
+"Usage: test_mat write",
+"",
+"Writes various datasets to test_mat_write.mat",
+"The output file should have 6 datasets as described below",
+"",
+"Dataset Name  Data Type   Rank Dimensions   Data",
+"---------------------------------------------------------------",
+"    d       Double         2    5x10   reshape(1:50,5,10)",
+"    f       Single         2    5x10   single(reshape(1:50,5,10))",
+"  i32       Int 32         2    5x10   int32(reshape(1:50,5,10))",
+"  i16       Int 16         2    5x10   int16(reshape(1:50,5,10))",
+"   i8       Int  8         2    5x10   int8(reshape(1:50,5,10))",
+"  str       Char           2    1x14   'This is a string'",
+"    z       Double Complex 2    5x10   reshape(1:25,5,5)+j*reshape(26:50,5,5)",
+"    s       Single Complex 2    5x10   single(reshape(1:25,5,5)+j*reshape(26:50,5,5))",
+"",
+NULL
 };
 
 static const char *helptest_writecompressed[] = {
@@ -151,13 +153,15 @@ static const char *helptest_write_struct[] = {
     "Writes a structure of size 4x1 with one field (data) of various types to",
     "file test_mat_write_struct.mat",
     "",
-    "Index    Data Type   Rank   Dimensions   Data",
+    "Index Data Type   Rank   Dimensions   Data",
     "---------------------------------------------------------------",
-    " 1,1     Double      2      5x10         reshape(1:50,5,10)",
-    " 2,1     Single      2      5x10         single(reshape(1:50,5,10))",
-    " 3,1     Int 32      2      5x10         int32(reshape(1:50,5,10))",
-    " 4,1     Char        2      1x16         'This is a string'",
-    " 5,1     Struct      2      4x1          structure(1:4,1)",
+    " 1,1  Double         2    5x10         reshape(1:50,5,10)",
+    " 2,1  Single         2    5x10         single(reshape(1:50,5,10))",
+    " 3,1  Int 32         2    5x10         int32(reshape(1:50,5,10))",
+    " 4,1  Char           2    1x16         'This is a string'",
+    " 5,1  Struct         2    4x1          structure(1:4,1)",
+    " 6,1  Double Complex 2    5x10   reshape(1:25,5,5)+j*reshape(26:50,5,5)",
+    " 7,1  Single Complex 2    5x10   single(reshape(1:25,5,5)+j*reshape(26:50,5,5))",
     "",
     NULL
 };
@@ -491,6 +495,7 @@ test_write( void )
 #ifdef HAVE_MAT_UINT64_T
     mat_uint64_t ui64[50];
 #endif
+    struct ComplexSplit z = {NULL,NULL},s = {NULL,NULL};
     char *str = "This is a string";
     mat_t *mat;
     matvar_t *matvar;
@@ -508,6 +513,11 @@ test_write( void )
         ui64[i] = i+1;
 #endif
     }
+
+    z.Re = d;
+    z.Im = d+25;
+    s.Re = f;
+    s.Im = f+25;
 
     mat = Mat_Open("test_mat_write.mat",MAT_ACC_RDWR | mat_file_ver);
     if ( mat ) {
@@ -544,6 +554,16 @@ test_write( void )
         matvar = Mat_VarCreate("ui64",MAT_C_UINT64,MAT_T_UINT64,2,dims,ui64,0);+        Mat_VarWrite(mat,matvar,0);
         Mat_VarFree(matvar);
 #endif
+        dims[0] = 5;
+        dims[1] = 5;
+        matvar = Mat_VarCreate("z",MAT_C_DOUBLE,MAT_T_DOUBLE,2,dims,&z,
+                               MAT_F_COMPLEX);
+        Mat_VarWrite(mat,matvar,0);
+        Mat_VarFree(matvar);
+        matvar = Mat_VarCreate("s",MAT_C_SINGLE,MAT_T_SINGLE,2,dims,&s,
+                               MAT_F_COMPLEX);
+        Mat_VarWrite(mat,matvar,0);
+        Mat_VarFree(matvar);
         Mat_Close(mat);
     } else {
         err = 1;
@@ -717,6 +737,7 @@ test_write_struct()
     float  fdata[50]={0.0,};
     int    idata[50]={0.0,};
     char  *str = "This is a string";
+    struct ComplexSplit z = {NULL,NULL},s = {NULL,NULL};
     int    err = 0, i;
     mat_t     *mat;
     matvar_t **matvar, *struct_matvar, *substruct_matvar;
@@ -727,9 +748,14 @@ test_write_struct()
         idata[i] = i+1;
     }
 
+    z.Re = data;
+    z.Im = data+25;
+    s.Re = fdata;
+    s.Im = fdata+25;
+
     mat = Mat_Create("test_mat_write_struct.mat",NULL,mat_file_ver);
     if ( mat ) {
-        matvar = malloc(6*sizeof(matvar_t *));
+        matvar = malloc(8*sizeof(*matvar));
         matvar[0] = Mat_VarCreate("data",MAT_C_DOUBLE,MAT_T_DOUBLE,2,
                        dims,data,MEM_CONSERVE);
         matvar[1] = Mat_VarCreate("data",MAT_C_SINGLE,MAT_T_SINGLE,2,
@@ -746,9 +772,15 @@ test_write_struct()
         substruct_matvar = Mat_VarCreate("data",MAT_C_STRUCT,MAT_T_STRUCT,
                             2,dims,matvar,0);
         matvar[4] = substruct_matvar;
-        matvar[5] = NULL;
-
         dims[0] = 5;
+        dims[1] = 5;
+        matvar[5] = Mat_VarCreate("data",MAT_C_DOUBLE,MAT_T_DOUBLE,2,dims,&z,
+                               MAT_F_COMPLEX);
+        matvar[6] = Mat_VarCreate("data",MAT_C_SINGLE,MAT_T_SINGLE,2,dims,&s,
+                               MAT_F_COMPLEX);
+        matvar[7] = NULL;
+
+        dims[0] = 7;
         dims[1] = 1;
         struct_matvar = Mat_VarCreate("structure",MAT_C_STRUCT,MAT_T_STRUCT,2,
                             dims,matvar,0);
@@ -757,6 +789,8 @@ test_write_struct()
         free(matvar[1]);
         free(matvar[2]);
         free(matvar[3]);
+        free(matvar[5]);
+        free(matvar[6]);
         free(matvar);
         free(struct_matvar);
         free(substruct_matvar);
