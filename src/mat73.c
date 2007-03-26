@@ -53,6 +53,23 @@ static const char *Mat_class_names[] = {
     "function"
 };
 
+static const char *class_type_desc[16] = {"Undefined","Cell Array","Structure",
+       "Object","Character Array","Sparse Array","Double Precision Array",
+       "Single Precision Array", "8-bit, signed Integer Array",
+       "8-bit, Unsigned Integer Array","16-bit, signed Integer Array",
+       "16-bit, unsigned Integer Array","32-bit, signed Integer Array",
+       "32-bit, unsigned Integer Array","Matlab Array","Compressed Data"};
+static const char *data_type_desc[23] = {"Unknown","8-bit, signed integer",
+       "8-bit, unsigned integer","16-bit, signed integer",
+       "16-bit, unsigned integer","32-bit, signed integer",
+       "32-bit, unsigned integer","IEEE 754 single-precision","RESERVED",
+       "IEEE 754 double-precision","RESERVED","RESERVED",
+       "64-bit, signed integer","64-bit, unsigned integer", "Matlab Array",
+       "Compressed Data","Unicode UTF-8 Encoded Character Data",
+       "Unicode UTF-16 Encoded Character Data",
+       "Unicode UTF-32 Encoded Character Data","","String","Cell Array",
+       "Structure"};
+
 /*===========================================================================
  *  Private functions
  *===========================================================================
@@ -263,6 +280,223 @@ Mat_data_type_to_hid_t(enum matio_types data_type)
        default:
            return -1;
     }
+}
+
+static void
+Mat_H5ReadNextReferenceInfo(hid_t ref_id,matvar_t *matvar)
+{
+    hid_t       gid;
+    H5E_auto_t  efunc;
+    void       *client_data;
+
+    if( ref_id < 0 || matvar == NULL)
+        return;
+
+    switch ( H5Iget_type(ref_id) ) {
+        case H5I_DATASET:
+        {
+            ssize_t  name_len;
+            /* FIXME */
+            hsize_t  dims[10];
+            hid_t   attr_id,type_id,dset_id,space_id;
+
+            //matvar->fp = mat;
+            dset_id = ref_id;
+
+#if 0
+            /* Get the HDF5 name of the variable */
+            name_len = H5Iget_name(dset_id,NULL,0);
+            matvar->hdf5_name = malloc(name_len+1);
+            (void)H5Iget_name(dset_id,matvar->hdf5_name,name_len);
+            printf("%s\n",matvar->hdf5_name);
+#endif
+
+            /* Get the rank and dimensions of the data */
+            space_id = H5Dget_space(dset_id);
+            matvar->rank = H5Sget_simple_extent_ndims(space_id);
+            matvar->dims = malloc(matvar->rank*sizeof(*matvar->dims));
+            if ( NULL != matvar->dims ) {
+                int k;
+                H5Sget_simple_extent_dims(space_id,dims,NULL);
+                for ( k = 0; k < matvar->rank; k++ )
+                    matvar->dims[k] = dims[k];
+            }
+            H5Sclose(space_id);
+
+            attr_id = H5Aopen_name(dset_id,"MATLAB_class");
+            type_id  = H5Aget_type(attr_id);
+            if ( H5T_STRING == H5Tget_class(type_id) ) {
+                char *class_str = malloc(H5Tget_size(type_id));
+                if ( NULL != class_str ) {
+                    hid_t class_id = H5Tcopy(H5T_C_S1);
+                    H5Tset_size(class_id,H5Tget_size(type_id));
+                    H5Aread(attr_id,class_id,class_str);
+                    H5Tclose(class_id);
+                    matvar->class_type = Mat_class_str_to_id(class_str);
+                    free(class_str);
+                }
+            }
+            H5Tclose(type_id);
+            H5Aclose(attr_id);
+
+            /* Turn off error printing so testing for attributes doesn't print
+             * error stacks
+             */
+            H5Eget_auto(&efunc,&client_data);
+            H5Eset_auto((H5E_auto_t)0,NULL);
+
+            attr_id = H5Aopen_name(dset_id,"MATLAB_global");
+            /* FIXME: Check that dataspace is scalar */
+            if ( -1 < attr_id ) {
+                H5Aread(attr_id,H5T_NATIVE_INT,&matvar->isGlobal);
+                H5Aclose(attr_id);
+            }
+
+            H5Eset_auto(efunc,client_data);
+            H5Dclose(dset_id);
+            break;
+        }
+#if 0
+        case H5G_GROUP:
+        {
+            ssize_t  name_len;
+            int      k;
+            char    **fieldnames = NULL;
+            /* FIXME */
+            hsize_t  dims[10],nfields,numel;
+            hid_t   attr_id,type_id,dset_id,space_id,field_id,field_type_id;
+            matvar_t **fields;
+
+            matvar->fp = mat;
+            name_len = H5Gget_objname_by_idx(fid,mat->next_index,NULL,0);
+            matvar->name = malloc(1+name_len);
+            if ( matvar->name ) {
+                name_len = H5Gget_objname_by_idx(fid,mat->next_index,
+                                                 matvar->name,1+name_len);
+                matvar->name[name_len] = '\0';
+            }
+            dset_id = H5Gopen(fid,matvar->name);
+
+            attr_id = H5Aopen_name(dset_id,"MATLAB_class");
+            type_id  = H5Aget_type(attr_id);
+            if ( H5T_STRING == H5Tget_class(type_id) ) {
+                char *class_str = calloc(H5Tget_size(type_id)+1,1);
+                if ( NULL != class_str ) {
+                    hid_t class_id = H5Tcopy(H5T_C_S1);
+                    H5Tset_size(class_id,H5Tget_size(type_id));
+                    H5Aread(attr_id,class_id,class_str);
+                    H5Tclose(class_id);
+                    matvar->class_type = Mat_class_str_to_id(class_str);
+                    free(class_str);
+                }
+            }
+            H5Tclose(type_id);
+            H5Aclose(attr_id);
+
+            /* Turn off error printing so testing for attributes doesn't print
+             * error stacks
+             */
+            H5Eget_auto(&efunc,&client_data);
+            H5Eset_auto((H5E_auto_t)0,NULL);
+
+            /* Check if the variable is global */
+            attr_id = H5Aopen_name(dset_id,"MATLAB_global");
+            /* FIXME: Check that dataspace is scalar */
+            if ( -1 < attr_id ) {
+                H5Aread(attr_id,H5T_NATIVE_INT,&matvar->isGlobal);
+                H5Aclose(attr_id);
+            }
+
+            /* Check if the structure defines its fields in MATLAB_fields */
+            attr_id = H5Aopen_name(dset_id,"MATLAB_fields");
+            if ( -1 < attr_id ) {
+                int field_length;
+                hvl_t     *fieldnames_vl;
+                space_id = H5Aget_space(attr_id);
+                (void)H5Sget_simple_extent_dims(space_id,&nfields,NULL);
+                field_id = H5Aget_type(attr_id);
+                fieldnames_vl = malloc(nfields*sizeof(*fieldnames_vl));
+                H5Aread(attr_id,field_id,fieldnames_vl);
+
+                fieldnames = malloc(nfields*sizeof(*fieldnames));
+                for ( k = 0; k < nfields; k++ ) {
+                    fieldnames[k] = calloc(fieldnames_vl[k].len+1,1);
+                    memcpy(fieldnames[k],fieldnames_vl[k].p,
+                           fieldnames_vl[k].len);
+                }
+
+                H5Sclose(space_id);
+                H5Tclose(field_id);
+                H5Aclose(attr_id);
+                free(fieldnames_vl);
+            }
+
+            field_id = H5Dopen(dset_id,fieldnames[0]);
+            if ( -1 < field_id ) {
+                field_type_id = H5Dget_type(field_id);
+                if ( H5T_REFERENCE == H5Tget_class(field_type_id) ) {
+                    space_id        = H5Dget_space(field_id);
+                    matvar->rank    = H5Sget_simple_extent_ndims(space_id);
+                    matvar->dims   = malloc(matvar->rank*sizeof(*matvar->dims));
+                    (void)H5Sget_simple_extent_dims(space_id,dims,NULL);
+                    numel = 1;
+                    for ( k = 0; k < matvar->rank; k++ ) {
+                        matvar->dims[k] = dims[k];
+                        numel *= matvar->dims[k];
+                    }
+                    H5Sclose(space_id);
+                } else {
+                    /* Structure should be a scalar */
+                    matvar->rank    = 2;
+                    matvar->dims    = malloc(2*sizeof(*matvar->dims));
+                    matvar->dims[0] = 1;
+                    matvar->dims[1] = 1;
+                }
+                H5Tclose(field_type_id);
+                H5Dclose(field_id);
+            }
+
+            /* Read the variable information for each field */
+            fields = malloc(nfields*numel*sizeof(*fields));
+            matvar->data = fields;
+            matvar->data_size = nfields*numel*sizeof(*fields);
+            if ( NULL != fields ) {
+                for ( k = 0; k < nfields; k++ ) {
+                    int l;
+                    field_id = H5Dopen(dset_id,fieldnames[k]);
+                    field_type_id = H5Dget_type(field_id);
+                    if ( H5T_REFERENCE == H5Tget_class(field_type_id) ) {
+                        hobj_ref_t *ref_ids = malloc(numel*sizeof(*ref_ids));
+                        H5Dread(field_id,H5T_STD_REF_OBJ,H5S_ALL,H5S_ALL,
+                                H5P_DEFAULT,ref_ids);
+                        for ( l = 0; l < numel; l++ ) {
+                            hid_t ref_id;
+                            fields[l*nfields+k] = Mat_VarCalloc();
+                            fields[l*nfields+k]->name = strdup(fieldnames[k]);
+                            fields[l*nfields+k]->fp   = matvar->fp;
+                            /* Closing of ref_id is done in
+                             * Mat_H5ReadNextReferenceInfo
+                             */
+                            ref_id = H5Rdereference(field_id,H5R_OBJECT,
+                                                    ref_ids+l);
+                            Mat_H5ReadNextReferenceInfo(ref_id,fields[l*nfields+k]);
+                        }
+                        free(ref_ids);
+                    }
+                    H5Dclose(field_id);
+                }
+            }
+
+            H5Eset_auto(efunc,client_data);
+            H5Gclose(dset_id);
+            mat->next_index++;
+            break;
+        }
+#endif
+        default:
+            break;
+    }
+    return matvar;
 }
 
 static int
@@ -683,11 +917,422 @@ Mat_Create73(const char *matname,const char *hdr_str)
     return mat;
 }
 
+/** @brief Prints the mat variable
+ *
+ * @ingroup mat_internal
+ * @param mat MAT file pointer
+ * @param matvar pointer to the mat variable
+ */
+void
+Mat_VarPrint73(matvar_t *matvar,int printdata)
+{
+    int i, j;
+
+    if ( matvar == NULL )
+        return; 
+    if ( matvar->name )
+        Mat_Message("      Name: %s", matvar->name);
+    Mat_Message("      Rank: %d", matvar->rank);
+    if ( matvar->rank == 0 )
+        return;
+    if ( matvar->isComplex )
+        Mat_Message("Class Type: %s (complex)",
+                    class_type_desc[matvar->class_type]);
+    else
+        Mat_Message("Class Type: %s",class_type_desc[matvar->class_type]);
+    if ( matvar->data_type )
+        Mat_Message(" Data Type: %s", data_type_desc[matvar->data_type]);
+
+    if ( !printdata || matvar->data == NULL || matvar->data_size < 1 )
+        return;
+
+    if ( matvar->rank > 2 ) {
+        Mat_Message("I can't print more than 2 dimensions\n");
+    } else if ( matvar->rank == 1 && matvar->dims[0] > 15 ) {
+        Mat_Message("I won't print more than 15 elements in a vector\n");
+    } else if (matvar->rank==2 && !(matvar->dims[0]>15 || matvar->dims[1]>15)) {
+        switch( matvar->class_type ) {
+            case MAT_C_DOUBLE:
+               if ( matvar->isComplex ) {
+                   struct ComplexSplit *complex_data = matvar->data;
+                   double *rp = complex_data->Re;
+                   double *ip = complex_data->Im;
+                   for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                        for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                            printf("%g %+gi ",rp[matvar->dims[0]*j+i],
+                                               ip[matvar->dims[0]*j+i]);
+                        if ( j < matvar->dims[1] )
+                            printf("...");
+                        printf("\n");
+                    }
+                    if ( i < matvar->dims[0] )
+                        printf(".\n.\n.\n");
+               } else {
+                   double *data = matvar->data;
+                   for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                        for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                            printf("%f ", data[matvar->dims[0]*j+i]);
+                        if ( j < matvar->dims[1] )
+                            printf("...");
+                        printf("\n");
+                    }
+                    if ( i < matvar->dims[0] )
+                        printf(".\n.\n.\n");
+                }
+                break;
+            case MAT_C_SINGLE:
+               if ( matvar->isComplex ) {
+                   struct ComplexSplit *complex_data = matvar->data;
+                   float *rp = complex_data->Re;
+                   float *ip = complex_data->Im;
+                   for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                        for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                            printf("%f %+fi ",rp[matvar->dims[0]*j+i],
+                                               ip[matvar->dims[0]*j+i]);
+                        if ( j < matvar->dims[1] )
+                            printf("...");
+                        printf("\n");
+                    }
+                    if ( i < matvar->dims[0] )
+                        printf(".\n.\n.\n");
+               } else {
+                   float *data = matvar->data;
+                   for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                        for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                            printf("%f ", data[matvar->dims[0]*j+i]);
+                        if ( j < matvar->dims[1] )
+                            printf("...");
+                        printf("\n");
+                    }
+                    if ( i < matvar->dims[0] )
+                        printf(".\n.\n.\n");
+                }
+                break;
+#if HAVE_MAT_INT64_T
+            case MAT_C_INT64:
+            {
+               mat_int64_t *data = matvar->data;
+               for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                    for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                        printf("%ld ", data[matvar->dims[0]*j+i]);
+                    if ( j < matvar->dims[1] )
+                        printf("...");
+                    printf("\n");
+                }
+                if ( i < matvar->dims[0] )
+                    printf(".\n.\n.\n");
+                break;
+            }
+#endif
+#if HAVE_MAT_UINT64_T
+            case MAT_C_UINT64:
+            {
+               mat_uint64_t *data = matvar->data;
+               for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                    for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                        printf("%lu ", data[matvar->dims[0]*j+i]);
+                    if ( j < matvar->dims[1] )
+                        printf("...");
+                    printf("\n");
+                }
+                if ( i < matvar->dims[0] )
+                    printf(".\n.\n.\n");
+                break;
+            }
+#endif
+            case MAT_C_INT32:
+            {
+               mat_int32_t *data = matvar->data;
+               for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                    for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                        printf("%ld ", data[matvar->dims[0]*j+i]);
+                    if ( j < matvar->dims[1] )
+                        printf("...");
+                    printf("\n");
+                }
+                if ( i < matvar->dims[0] )
+                    printf(".\n.\n.\n");
+                break;
+            }
+            case MAT_C_UINT32:
+            {
+               mat_uint32_t *data = matvar->data;
+               for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                    for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                        printf("%lu ", data[matvar->dims[0]*j+i]);
+                    if ( j < matvar->dims[1] )
+                        printf("...");
+                    printf("\n");
+                }
+                if ( i < matvar->dims[0] )
+                    printf(".\n.\n.\n");
+                break;
+            }
+            case MAT_C_INT16:
+            {
+               mat_int16_t *data = matvar->data;
+               for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                    for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                        printf("%ld ", data[matvar->dims[0]*j+i]);
+                    if ( j < matvar->dims[1] )
+                        printf("...");
+                    printf("\n");
+                }
+                if ( i < matvar->dims[0] )
+                    printf(".\n.\n.\n");
+                break;
+            }
+            case MAT_C_UINT16:
+            {
+               mat_uint16_t *data = matvar->data;
+               for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                    for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                        printf("%lu ", data[matvar->dims[0]*j+i]);
+                    if ( j < matvar->dims[1] )
+                        printf("...");
+                    printf("\n");
+                }
+                if ( i < matvar->dims[0] )
+                    printf(".\n.\n.\n");
+                break;
+            }
+            case MAT_C_INT8:
+            {
+               mat_int8_t *data = matvar->data;
+               for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                    for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                        printf("%ld ", data[matvar->dims[0]*j+i]);
+                    if ( j < matvar->dims[1] )
+                        printf("...");
+                    printf("\n");
+                }
+                if ( i < matvar->dims[0] )
+                    printf(".\n.\n.\n");
+                break;
+            }
+            case MAT_C_UINT8:
+            {
+               mat_uint8_t *data = matvar->data;
+               for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                    for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                        printf("%lu ", data[matvar->dims[0]*j+i]);
+                    if ( j < matvar->dims[1] )
+                        printf("...");
+                    printf("\n");
+                }
+                if ( i < matvar->dims[0] )
+                    printf(".\n.\n.\n");
+                break;
+            }
+        }
+    }
+
+    return;
+}
+
+/** @brief Reads the MAT variable identified by matvar
+ *
+ * @ingroup mat_internal
+ * @param mat MAT file pointer
+ * @param matvar MAT variable pointer
+ */
+void
+Mat_VarRead73(mat_t *mat,matvar_t *matvar)
+{
+    int k;
+    size_t numel;
+    hid_t fid,dset_id;
+
+    if ( NULL == mat || NULL == matvar )
+        return;
+
+    fid = *(hid_t*)mat->fp;
+
+    switch (matvar->class_type) {
+        case MAT_C_DOUBLE:
+        case MAT_C_SINGLE:
+        case MAT_C_INT64:
+        case MAT_C_UINT64:
+        case MAT_C_INT32:
+        case MAT_C_UINT32:
+        case MAT_C_INT16:
+        case MAT_C_UINT16:
+        case MAT_C_INT8:
+        case MAT_C_UINT8:
+            numel = 1;
+            for ( k = 0; k < matvar->rank; k++ )
+                numel *= matvar->dims[k];
+            matvar->data_size = Mat_SizeOfClass(matvar->class_type);
+            matvar->nbytes    = numel*matvar->data_size;
+
+            dset_id = H5Dopen(fid,matvar->hdf5_name);
+
+            if ( !matvar->isComplex ) {
+                matvar->data      = malloc(matvar->nbytes);
+                if ( NULL != matvar->data ) {
+                    H5Dread(dset_id,Mat_class_type_to_hid_t(matvar->class_type),
+                            H5S_ALL,H5S_ALL,H5P_DEFAULT,matvar->data);
+                }
+            } else {
+                struct ComplexSplit *complex_data;
+                void *tmp;
+                hid_t h5_complex_base,h5_complex;
+
+                complex_data     = malloc(sizeof(*complex_data));
+                complex_data->Re = malloc(matvar->nbytes);
+                complex_data->Im = malloc(matvar->nbytes);
+
+                h5_complex_base = Mat_class_type_to_hid_t(matvar->class_type);
+                h5_complex      = H5Tcreate(H5T_COMPOUND,
+                                      2*H5Tget_size(h5_complex_base));
+                H5Tinsert(h5_complex,"real",0,h5_complex_base);
+                H5Tinsert(h5_complex,"imag",H5Tget_size(h5_complex_base),
+                          h5_complex_base);
+
+                /* FIXME */
+                tmp = malloc(2*matvar->nbytes);
+                H5Dread(dset_id,h5_complex,H5S_ALL,H5S_ALL,H5P_DEFAULT,tmp);
+                switch ( matvar->class_type ) {
+                    case MAT_C_DOUBLE:
+                    {
+                        double *rp      = complex_data->Re;
+                        double *ip      = complex_data->Im;
+                        double *tmp_ptr = tmp;
+                        size_t  k;
+                        for ( k = 0; k < numel; k++ ) {
+                            *rp++ = *tmp_ptr++;
+                            *ip++ = *tmp_ptr++;
+                        }
+                        break;
+                    }
+                    case MAT_C_SINGLE:
+                    {
+                        float *rp      = complex_data->Re;
+                        float *ip      = complex_data->Im;
+                        float *tmp_ptr = tmp;
+                        size_t  k;
+                        for ( k = 0; k < numel; k++ ) {
+                            *rp++ = *tmp_ptr++;
+                            *ip++ = *tmp_ptr++;
+                        }
+                        break;
+                    }
+#if HAVE_MAT_INT64_T
+                    case MAT_C_INT64:
+                    {
+                        mat_int64_t *rp      = complex_data->Re;
+                        mat_int64_t *ip      = complex_data->Im;
+                        mat_int64_t *tmp_ptr = tmp;
+                        size_t  k;
+                        for ( k = 0; k < numel; k++ ) {
+                            *rp++ = *tmp_ptr++;
+                            *ip++ = *tmp_ptr++;
+                        }
+                        break;
+                    }
+#endif
+#if HAVE_MAT_UINT64_T
+                    case MAT_C_UINT64:
+                    {
+                        mat_uint64_t *rp      = complex_data->Re;
+                        mat_uint64_t *ip      = complex_data->Im;
+                        mat_uint64_t *tmp_ptr = tmp;
+                        size_t  k;
+                        for ( k = 0; k < numel; k++ ) {
+                            *rp++ = *tmp_ptr++;
+                            *ip++ = *tmp_ptr++;
+                        }
+                        break;
+                    }
+#endif
+                    case MAT_C_INT32:
+                    {
+                        mat_int32_t *rp      = complex_data->Re;
+                        mat_int32_t *ip      = complex_data->Im;
+                        mat_int32_t *tmp_ptr = tmp;
+                        size_t  k;
+                        for ( k = 0; k < numel; k++ ) {
+                            *rp++ = *tmp_ptr++;
+                            *ip++ = *tmp_ptr++;
+                        }
+                        break;
+                    }
+                    case MAT_C_UINT32:
+                    {
+                        mat_uint32_t *rp      = complex_data->Re;
+                        mat_uint32_t *ip      = complex_data->Im;
+                        mat_uint32_t *tmp_ptr = tmp;
+                        size_t  k;
+                        for ( k = 0; k < numel; k++ ) {
+                            *rp++ = *tmp_ptr++;
+                            *ip++ = *tmp_ptr++;
+                        }
+                        break;
+                    }
+                    case MAT_C_INT16:
+                    {
+                        mat_int16_t *rp      = complex_data->Re;
+                        mat_int16_t *ip      = complex_data->Im;
+                        mat_int16_t *tmp_ptr = tmp;
+                        size_t  k;
+                        for ( k = 0; k < numel; k++ ) {
+                            *rp++ = *tmp_ptr++;
+                            *ip++ = *tmp_ptr++;
+                        }
+                        break;
+                    }
+                    case MAT_C_UINT16:
+                    {
+                        mat_uint16_t *rp      = complex_data->Re;
+                        mat_uint16_t *ip      = complex_data->Im;
+                        mat_uint16_t *tmp_ptr = tmp;
+                        size_t  k;
+                        for ( k = 0; k < numel; k++ ) {
+                            *rp++ = *tmp_ptr++;
+                            *ip++ = *tmp_ptr++;
+                        }
+                        break;
+                    }
+                    case MAT_C_INT8:
+                    {
+                        mat_int8_t *rp      = complex_data->Re;
+                        mat_int8_t *ip      = complex_data->Im;
+                        mat_int8_t *tmp_ptr = tmp;
+                        size_t  k;
+                        for ( k = 0; k < numel; k++ ) {
+                            *rp++ = *tmp_ptr++;
+                            *ip++ = *tmp_ptr++;
+                        }
+                        break;
+                    }
+                    case MAT_C_UINT8:
+                    {
+                        mat_uint8_t *rp      = complex_data->Re;
+                        mat_uint8_t *ip      = complex_data->Im;
+                        mat_uint8_t *tmp_ptr = tmp;
+                        size_t  k;
+                        for ( k = 0; k < numel; k++ ) {
+                            *rp++ = *tmp_ptr++;
+                            *ip++ = *tmp_ptr++;
+                        }
+                        break;
+                    }
+                }
+                free(tmp);
+
+                H5Tclose(h5_complex);
+                matvar->data = complex_data;
+            }
+            H5Dclose(dset_id);
+            break;
+    }
+}
+
 /** @brief Reads the header information for the next MAT variable
  *
  * @ingroup mat_internal
  * @param mat MAT file pointer
- * @retuen pointer to the MAT variable or NULL
+ * @return pointer to the MAT variable or NULL
  */
 matvar_t *
 Mat_VarReadNextInfo73( mat_t *mat )
@@ -704,73 +1349,246 @@ Mat_VarReadNextInfo73( mat_t *mat )
     fid = *(hid_t*)mat->fp;
     H5Gget_num_objs(fid,&num_objs);
     /* FIXME: follow symlinks, datatypes? */
-    while ( H5G_DATASET != H5Gget_objtype_by_idx(fid,mat->next_index) &&
-            mat->next_index < num_objs ) {
-        mat->next_index++;
+    while ( mat->next_index < num_objs ) {
+        if ( H5G_DATASET == H5Gget_objtype_by_idx(fid,mat->next_index) ) {
+            break;
+        } else if ( H5G_GROUP == H5Gget_objtype_by_idx(fid,mat->next_index) ) {
+            /* Check that this is not the /#refs# group */
+            char name[128] = {0,};
+            (void)H5Gget_objname_by_idx(fid,mat->next_index,name,127);
+            if ( strcmp(name,"#refs#") )
+                break;
+            else
+                mat->next_index++;
+        } else {
+            mat->next_index++;
+        }
     }
 
     if ( mat->next_index >= num_objs )
         return NULL;
+    else if ( NULL == (matvar = Mat_VarCalloc()) )
+        return NULL;
 
-    matvar = Mat_VarCalloc();
-    if ( NULL != matvar ) {
-        ssize_t  name_len;
-        /* FIXME */
-        hsize_t  dims[10];
-        hid_t   attr_id,type_id,dset_id,space_id;
+    switch ( H5Gget_objtype_by_idx(fid,mat->next_index) ) {
+        case H5G_DATASET:
+        {
+            ssize_t  name_len;
+            /* FIXME */
+            hsize_t  dims[10];
+            hid_t   attr_id,type_id,dset_id,space_id;
 
-        matvar->fp = mat;
-        name_len = H5Gget_objname_by_idx(fid,mat->next_index,NULL,0);
-        matvar->name = malloc(1+name_len);
-        if ( matvar->name ) {
-            name_len = H5Gget_objname_by_idx(fid,mat->next_index,matvar->name,
-                                             1+name_len);
-            matvar->name[name_len] = '\0';
-        }
-        dset_id = H5Dopen(fid,matvar->name);
-        space_id = H5Dget_space(dset_id);
-        matvar->rank = H5Sget_simple_extent_ndims(space_id);
-        matvar->dims = malloc(matvar->rank*sizeof(*matvar->dims));
-        if ( NULL != matvar->dims ) {
-            int k;
-            H5Sget_simple_extent_dims(space_id,dims,NULL);
-            for ( k = 0; k < matvar->rank; k++ )
-                matvar->dims[k] = dims[k];
-        }
-        H5Sclose(space_id);
-
-        attr_id = H5Aopen_name(dset_id,"MATLAB_class");
-        type_id  = H5Aget_type(attr_id);
-        if ( H5T_STRING == H5Tget_class(type_id) ) {
-            char *class_str = malloc(H5Tget_size(type_id));
-            if ( NULL != class_str ) {
-                hid_t class_id = H5Tcopy(H5T_C_S1);
-                H5Tset_size(class_id,H5Tget_size(type_id));
-                H5Aread(attr_id,class_id,class_str);
-                H5Tclose(class_id);
-                matvar->class_type = Mat_class_str_to_id(class_str);
-                free(class_str);
+            matvar->fp = mat;
+            name_len = H5Gget_objname_by_idx(fid,mat->next_index,NULL,0);
+            matvar->name = malloc(1+name_len);
+            if ( matvar->name ) {
+                name_len = H5Gget_objname_by_idx(fid,mat->next_index,
+                                                 matvar->name,1+name_len);
+                matvar->name[name_len] = '\0';
             }
-        }
-        H5Tclose(type_id);
-        H5Aclose(attr_id);
+            dset_id = H5Dopen(fid,matvar->name);
 
-        /* Turn off error printing so testing for attributes doesn't print
-         * error stacks
-         */
-        H5Eget_auto(&efunc,&client_data);
-        H5Eset_auto((H5E_auto_t)0,NULL);
+            /* Get the HDF5 name of the variable */
+            name_len = H5Iget_name(dset_id,NULL,0);
+            matvar->hdf5_name = malloc(name_len+1);
+            (void)H5Iget_name(dset_id,matvar->hdf5_name,name_len+1);
 
-        attr_id = H5Aopen_name(dset_id,"MATLAB_global");
-        /* FIXME: Check that dataspace is scalar */
-        if ( -1 < attr_id ) {
-            H5Aread(attr_id,H5T_NATIVE_INT,&matvar->isGlobal);
+            space_id = H5Dget_space(dset_id);
+            matvar->rank = H5Sget_simple_extent_ndims(space_id);
+            matvar->dims = malloc(matvar->rank*sizeof(*matvar->dims));
+            if ( NULL != matvar->dims ) {
+                int k;
+                H5Sget_simple_extent_dims(space_id,dims,NULL);
+                for ( k = 0; k < matvar->rank; k++ )
+                    matvar->dims[k] = dims[k];
+            }
+            H5Sclose(space_id);
+
+            attr_id = H5Aopen_name(dset_id,"MATLAB_class");
+            type_id  = H5Aget_type(attr_id);
+            if ( H5T_STRING == H5Tget_class(type_id) ) {
+                char *class_str = malloc(H5Tget_size(type_id));
+                if ( NULL != class_str ) {
+                    hid_t class_id = H5Tcopy(H5T_C_S1);
+                    H5Tset_size(class_id,H5Tget_size(type_id));
+                    H5Aread(attr_id,class_id,class_str);
+                    H5Tclose(class_id);
+                    matvar->class_type = Mat_class_str_to_id(class_str);
+                    free(class_str);
+                }
+            }
+            H5Tclose(type_id);
             H5Aclose(attr_id);
-        }
 
-        H5Eset_auto(efunc,client_data);
-        H5Dclose(dset_id);
-        mat->next_index++;
+            /* Turn off error printing so testing for attributes doesn't print
+             * error stacks
+             */
+            H5Eget_auto(&efunc,&client_data);
+            H5Eset_auto((H5E_auto_t)0,NULL);
+
+            attr_id = H5Aopen_name(dset_id,"MATLAB_global");
+            /* FIXME: Check that dataspace is scalar */
+            if ( -1 < attr_id ) {
+                H5Aread(attr_id,H5T_NATIVE_INT,&matvar->isGlobal);
+                H5Aclose(attr_id);
+            }
+
+            H5Eset_auto(efunc,client_data);
+
+            /* Test if dataset type is compound and if so if it's complex */
+            type_id = H5Dget_type(dset_id);
+            if ( H5T_COMPOUND == H5Tget_class(type_id) ) {
+                /* FIXME: Any more checks? */
+                matvar->isComplex = MAT_F_COMPLEX;
+            }
+            H5Tclose(type_id);
+
+            /* Close dataset and increment count */
+            H5Dclose(dset_id);
+            mat->next_index++;
+            break;
+        }
+        case H5G_GROUP:
+        {
+            ssize_t  name_len;
+            int      k;
+            char    **fieldnames = NULL;
+            /* FIXME */
+            hsize_t  dims[10],nfields,numel;
+            hid_t   attr_id,type_id,dset_id,space_id,field_id,field_type_id;
+            matvar_t **fields;
+
+            matvar->fp = mat;
+            name_len = H5Gget_objname_by_idx(fid,mat->next_index,NULL,0);
+            matvar->name = malloc(1+name_len);
+            if ( matvar->name ) {
+                name_len = H5Gget_objname_by_idx(fid,mat->next_index,
+                                                 matvar->name,1+name_len);
+                matvar->name[name_len] = '\0';
+            }
+            dset_id = H5Gopen(fid,matvar->name);
+
+            /* Get the HDF5 name of the variable */
+            name_len = H5Iget_name(dset_id,NULL,0);
+            matvar->hdf5_name = malloc(name_len+1);
+            (void)H5Iget_name(dset_id,matvar->hdf5_name,name_len+1);
+
+            attr_id = H5Aopen_name(dset_id,"MATLAB_class");
+            type_id  = H5Aget_type(attr_id);
+            if ( H5T_STRING == H5Tget_class(type_id) ) {
+                char *class_str = calloc(H5Tget_size(type_id)+1,1);
+                if ( NULL != class_str ) {
+                    hid_t class_id = H5Tcopy(H5T_C_S1);
+                    H5Tset_size(class_id,H5Tget_size(type_id));
+                    H5Aread(attr_id,class_id,class_str);
+                    H5Tclose(class_id);
+                    matvar->class_type = Mat_class_str_to_id(class_str);
+                    free(class_str);
+                }
+            }
+            H5Tclose(type_id);
+            H5Aclose(attr_id);
+
+            /* Turn off error printing so testing for attributes doesn't print
+             * error stacks
+             */
+            H5Eget_auto(&efunc,&client_data);
+            H5Eset_auto((H5E_auto_t)0,NULL);
+
+            /* Check if the variable is global */
+            attr_id = H5Aopen_name(dset_id,"MATLAB_global");
+            /* FIXME: Check that dataspace is scalar */
+            if ( -1 < attr_id ) {
+                H5Aread(attr_id,H5T_NATIVE_INT,&matvar->isGlobal);
+                H5Aclose(attr_id);
+            }
+
+            /* Check if the structure defines its fields in MATLAB_fields */
+            attr_id = H5Aopen_name(dset_id,"MATLAB_fields");
+            if ( -1 < attr_id ) {
+                int field_length;
+                hvl_t     *fieldnames_vl;
+                space_id = H5Aget_space(attr_id);
+                (void)H5Sget_simple_extent_dims(space_id,&nfields,NULL);
+                field_id = H5Aget_type(attr_id);
+                fieldnames_vl = malloc(nfields*sizeof(*fieldnames_vl));
+                H5Aread(attr_id,field_id,fieldnames_vl);
+
+                fieldnames = malloc(nfields*sizeof(*fieldnames));
+                for ( k = 0; k < nfields; k++ ) {
+                    fieldnames[k] = calloc(fieldnames_vl[k].len+1,1);
+                    memcpy(fieldnames[k],fieldnames_vl[k].p,
+                           fieldnames_vl[k].len);
+                }
+
+                H5Sclose(space_id);
+                H5Tclose(field_id);
+                H5Aclose(attr_id);
+                free(fieldnames_vl);
+            }
+
+            field_id = H5Dopen(dset_id,fieldnames[0]);
+            if ( -1 < field_id ) {
+                field_type_id = H5Dget_type(field_id);
+                if ( H5T_REFERENCE == H5Tget_class(field_type_id) ) {
+                    space_id        = H5Dget_space(field_id);
+                    matvar->rank    = H5Sget_simple_extent_ndims(space_id);
+                    matvar->dims   = malloc(matvar->rank*sizeof(*matvar->dims));
+                    (void)H5Sget_simple_extent_dims(space_id,dims,NULL);
+                    numel = 1;
+                    for ( k = 0; k < matvar->rank; k++ ) {
+                        matvar->dims[k] = dims[k];
+                        numel *= matvar->dims[k];
+                    }
+                    H5Sclose(space_id);
+                } else {
+                    /* Structure should be a scalar */
+                    matvar->rank    = 2;
+                    matvar->dims    = malloc(2*sizeof(*matvar->dims));
+                    matvar->dims[0] = 1;
+                    matvar->dims[1] = 1;
+                }
+                H5Tclose(field_type_id);
+                H5Dclose(field_id);
+            }
+
+            fields = malloc(nfields*numel*sizeof(*fields));
+            matvar->data = fields;
+            matvar->data_size = sizeof(*fields);
+            matvar->nbytes    = nfields*numel*matvar->data_size;
+            if ( NULL != fields ) {
+                for ( k = 0; k < nfields; k++ ) {
+                    int l;
+                    field_id = H5Dopen(dset_id,fieldnames[k]);
+                    field_type_id = H5Dget_type(field_id);
+                    if ( H5T_REFERENCE == H5Tget_class(field_type_id) ) {
+                        hobj_ref_t *ref_ids = malloc(numel*sizeof(*ref_ids));
+                        H5Dread(field_id,H5T_STD_REF_OBJ,H5S_ALL,H5S_ALL,
+                                H5P_DEFAULT,ref_ids);
+                        for ( l = 0; l < numel; l++ ) {
+                            hid_t ref_id;
+                            fields[l*nfields+k] = Mat_VarCalloc();
+                            fields[l*nfields+k]->name = strdup(fieldnames[k]);
+                            /* Closing of ref_id is done in
+                             * Mat_H5ReadNextReferenceInfo
+                             */
+                            ref_id = H5Rdereference(field_id,H5R_OBJECT,
+                                                    ref_ids+l);
+                            Mat_H5ReadNextReferenceInfo(ref_id,fields[l*nfields+k]);
+                        }
+                        free(ref_ids);
+                    }
+                    H5Dclose(field_id);
+                }
+            }
+
+            H5Eset_auto(efunc,client_data);
+            H5Gclose(dset_id);
+            mat->next_index++;
+            break;
+        }
+        default:
+            break;
     }
     return matvar;
 }

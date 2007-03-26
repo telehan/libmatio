@@ -39,8 +39,12 @@ ReadData(mat_t *mat, matvar_t *matvar)
 {
     if ( mat == NULL || matvar == NULL || mat->fp == NULL )
         return;
-    else if ( mat->version != MAT_FT_MAT4 )
+    else if ( mat->version == MAT_FT_MAT5 )
         Read5(mat,matvar);
+#if MAT73
+    else if ( mat->version == MAT_FT_MAT73 )
+        Mat_VarRead73(mat,matvar);
+#endif
     else if ( mat->version == MAT_FT_MAT4 )
         Read4(mat,matvar);
     return;
@@ -1323,8 +1327,10 @@ Mat_VarPrint( matvar_t *matvar, int printdata )
 {
     if ( matvar == NULL || matvar->fp == NULL )
         return;
-    else if ( matvar->fp->version != MAT_FT_MAT4 )
+    else if ( matvar->fp->version == MAT_FT_MAT5 )
         Mat_VarPrint5(matvar,printdata);
+    else if ( matvar->fp->version == MAT_FT_MAT73 )
+        Mat_VarPrint73(matvar,printdata);
     else if ( matvar->fp->version == MAT_FT_MAT4 )
         Mat_VarPrint4(matvar,printdata);
     return;
@@ -1788,11 +1794,15 @@ Mat_VarRead( mat_t *mat, char *name )
     if ( (mat == NULL) || (name == NULL) )
         return NULL;
 
-    fpos = ftell(mat->fp);
+    if ( MAT_FT_MAT73 != mat->version )
+        fpos = ftell(mat->fp);
+
     matvar = Mat_VarReadInfo(mat,name);
     if ( matvar )
         ReadData(mat,matvar);
-    fseek(mat->fp,fpos,SEEK_SET);
+
+    if ( MAT_FT_MAT73 != mat->version )
+        fseek(mat->fp,fpos,SEEK_SET);
     return matvar;
 }
 

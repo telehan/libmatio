@@ -235,6 +235,10 @@ typedef struct matvar_t {
 #if defined(HAVE_ZLIB)
     z_stream *z;        /**< zlib compression state */
 #endif
+#if MAT73
+    /* FIXME */
+    char *hdf5_name;
+#endif
 } matvar_t;
 
 /** @brief sparse data information

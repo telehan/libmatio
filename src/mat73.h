@@ -29,6 +29,8 @@
 
 EXTERN mat_t    *Mat_Create73(const char *matname,const char *hdr_str);
 
+EXTERN void      Mat_VarPrint73(matvar_t *matvar,int printdata);
+EXTERN void      Mat_VarRead73(mat_t *mat,matvar_t *matvar);
 EXTERN matvar_t *Mat_VarReadNextInfo73(mat_t *mat);
 EXTERN int       Mat_VarWrite73(mat_t *mat,matvar_t *matvar,int compress);
 
