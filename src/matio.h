@@ -88,7 +88,7 @@ enum mat_acc {
  * MAT file versions
  */
 enum mat_ft {
-    MAT_FT_MAT73  = 0x0200,   /**< @brief Matlab level-5 file                 */
+    MAT_FT_MAT73  = 0x0200,   /**< @brief Matlab version 7.3 file             */
     MAT_FT_MAT5   = 0x0100,   /**< @brief Matlab level-5 file                 */
     MAT_FT_MAT4   = 0x0010    /**< @brief Version 4 file                      */
 };
