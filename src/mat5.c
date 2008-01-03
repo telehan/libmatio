@@ -6287,301 +6287,211 @@ Mat_VarPrint5( matvar_t *matvar, int printdata )
         Mat_Message("Class Type: %s",class_type_desc[matvar->class_type]);
     if ( matvar->data_type )
         Mat_Message(" Data Type: %s", data_type_desc[matvar->data_type]);
-    if ( matvar->data != NULL && matvar->data_size > 0 ) {
+
+    if ( matvar->data == NULL || matvar->data_size < 1 ) {
+        return;
+    } else if ( MAT_C_STRUCT == matvar->class_type ) {
+        matvar_t **fields = (matvar_t **)matvar->data;
+        int nfields = matvar->nbytes / matvar->data_size;
+        Mat_Message("Fields[%d] {", nfields);
+        for ( i = 0; i < nfields; i++ )
+            Mat_VarPrint5(fields[i],printdata);
+        Mat_Message("}");
+        return;
+    } else if ( MAT_C_CELL == matvar->class_type ) {
+        matvar_t **cells = (matvar_t **)matvar->data;
+        int ncells = matvar->nbytes / matvar->data_size;
+        Mat_Message("{");
+        for ( i = 0; i < ncells; i++ )
+            Mat_VarPrint5(cells[i],printdata);
+        Mat_Message("}");
+        return;
+    } else if ( !printdata ) {
+        return;
+    }
+
+    Mat_Message("{");
+
+    if ( matvar->rank > 2 ) {
+        Mat_Message("I can't print more than 2 dimensions\n");
+    } else if ( matvar->rank == 1 && matvar->dims[0] > 15 ) {
+        Mat_Message("I won't print more than 15 elements in a vector\n");
+    } else if ( matvar->rank==2 ) {
         switch( matvar->class_type ) {
             case MAT_C_DOUBLE:
-                if ( !printdata )
-                    break;
-                if ( matvar->rank > 2 ) {
-                    printf("I can't print more than 2 dimensions\n");
-                } else if ( matvar->rank == 1 && matvar->dims[0] > 15 ) {
-                    printf("I won't print more than 15 elements in a vector\n");
-                } else if ( matvar->rank == 2 &&
-                         (matvar->dims[0] > 15 || matvar->dims[1] > 15) ) {
-                    for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+               if ( matvar->isComplex ) {
+                   struct ComplexSplit *complex_data = matvar->data;
+                   double *rp = complex_data->Re;
+                   double *ip = complex_data->Im;
+                   for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
                         for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
-                            printf("%f ", ((double*)matvar->data)[matvar->dims[0]*j+i]);
+                            printf("%g %+gi ",rp[matvar->dims[0]*j+i],
+                                               ip[matvar->dims[0]*j+i]);
+                        if ( j < matvar->dims[1] )
+                            printf("...");
+                        printf("\n"); 
+                    }
+                    if ( i < matvar->dims[0] )
+                        printf(".\n.\n.\n");
+               } else {
+                   double *data = matvar->data;
+                   for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                        for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                            printf("%g ", data[matvar->dims[0]*j+i]);
                         if ( j < matvar->dims[1] )
                             printf("...");
                         printf("\n");
                     }
                     if ( i < matvar->dims[0] )
                         printf(".\n.\n.\n");
-                } else if ( matvar->rank == 2 ) {
-                    for ( i = 0; i < matvar->dims[0]; i++ ) {
-                        for ( j = 0; j < matvar->dims[1]; j++ )
-                            printf("%f ", ((double*)matvar->data)[matvar->dims[0]*j+i]);
-                        printf("\n");
-                    }
-                } else {
-                    for ( i = 0; i < matvar->nbytes/matvar->data_size; i++ )
-                        printf("%f\n", ((double*)matvar->data)[i]);
                 }
                 break;
             case MAT_C_SINGLE:
-                if ( !printdata )
-                    break;
-                if ( matvar->rank > 2 ) {
-                    printf("I can't print more than 2 dimensions\n");
-                } else if ( matvar->rank == 1 && matvar->dims[0] > 15 ) {
-                    printf("I won't print more than 15 elements in a vector\n");
-                } else if ( matvar->rank == 2 &&
-                         (matvar->dims[0] > 15 || matvar->dims[1] > 15) ) {
-                    for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+               if ( matvar->isComplex ) {
+                   struct ComplexSplit *complex_data = matvar->data;
+                   float *rp = complex_data->Re;
+                   float *ip = complex_data->Im;
+                   for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
                         for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
-                            printf("%f ", ((float*)matvar->data)[matvar->dims[0]*j+i]);
+                            printf("%g %+gi ",rp[matvar->dims[0]*j+i],
+                                               ip[matvar->dims[0]*j+i]);
                         if ( j < matvar->dims[1] )
                             printf("...");
                         printf("\n");
                     }
                     if ( i < matvar->dims[0] )
                         printf(".\n.\n.\n");
-                } else if ( matvar->rank == 2 ) {
-                    for ( i = 0; i < matvar->dims[0]; i++ ) {
-                        for ( j = 0; j < matvar->dims[1]; j++ )
-                            printf("%f ", ((float*)matvar->data)[matvar->dims[0]*j+i]);
+               } else {
+                   float *data = matvar->data;
+                   for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                        for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                            printf("%g ", data[matvar->dims[0]*j+i]);
+                        if ( j < matvar->dims[1] )
+                            printf("...");
                         printf("\n");
                     }
-                } else {
-                    for ( i = 0; i < matvar->nbytes/matvar->data_size; i++ )
-                        printf("%f\n", ((float*)matvar->data)[i]);
+                    if ( i < matvar->dims[0] )
+                        printf(".\n.\n.\n");
                 }
                 break;
-#ifdef HAVE_MAT_INT64_T
+#if HAVE_MAT_INT64_T
             case MAT_C_INT64:
-                if ( !printdata )
-                    break;
-                if ( matvar->rank > 2 ) {
-                    printf("I can't print more than 2 dimensions\n");
-                } else if ( matvar->rank == 1 && matvar->dims[0] > 15 ) {
-                    printf("I won't print more than 15 elements in a vector\n");                } else if ( matvar->rank == 2 &&
-                         (matvar->dims[0] > 15 || matvar->dims[1] > 15) ) {
-                    for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
-                        for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
-                            printf("%d ", ((mat_int64_t*)matvar->data)[matvar->dims[0]*j+i]);
-                        if ( j < matvar->dims[1] )
-                            printf("...");
-                        printf("\n");
-                    }
-                    if ( i < matvar->dims[0] )
-                        printf(".\n.\n.\n");
-                } else if ( matvar->rank == 2 ) {
-                    for ( i = 0; i < matvar->dims[0]; i++ ) {
-                        for ( j = 0; j < matvar->dims[1]; j++ )
-                            printf("%d ", ((mat_uint64_t*)matvar->data)[matvar->dims[0]*j+i]);
-                        printf("\n");
-                    }
-                } else {
-                    for ( i = 0; i < matvar->nbytes/matvar->data_size; i++ )
-                        printf("%d\n", ((mat_int64_t*)matvar->data)[i]);
+            {
+               mat_int64_t *data = matvar->data;
+               for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                    for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                        printf("%ld ", data[matvar->dims[0]*j+i]);
+                    if ( j < matvar->dims[1] )
+                        printf("...");
+                    printf("\n");
                 }
+                if ( i < matvar->dims[0] )
+                    printf(".\n.\n.\n");
                 break;
-#endif /* HAVE_MAT_INT64_T */
-#ifdef HAVE_MAT_UINT64_T
+            }
+#endif
+#if HAVE_MAT_UINT64_T
             case MAT_C_UINT64:
-                if ( !printdata )
-                    break;
-                if ( matvar->rank > 2 ) {
-                    printf("I can't print more than 2 dimensions\n");
-                } else if ( matvar->rank == 1 && matvar->dims[0] > 15 ) {
-                    printf("I won't print more than 15 elements in a vector\n");                } else if ( matvar->rank == 2 &&
-                         (matvar->dims[0] > 15 || matvar->dims[1] > 15) ) {
-                    for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
-                        for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
-                            printf("%u ", ((mat_uint64_t*)matvar->data)[matvar->dims[0]*j+i]);
-                        if ( j < matvar->dims[1] )
-                            printf("...");
-                        printf("\n");
-                    }
-                    if ( i < matvar->dims[0] )
-                        printf(".\n.\n.\n");
-                } else if ( matvar->rank == 2 ) {
-                    for ( i = 0; i < matvar->dims[0]; i++ ) {
-                        for ( j = 0; j < matvar->dims[1]; j++ )
-                            printf("%u ", ((mat_uint64_t*)matvar->data)[matvar->dims[0]*j+i]);
-                        printf("\n");
-                    }
-                } else {
-                    for ( i = 0; i < matvar->nbytes/matvar->data_size; i++ )
-                        printf("%u\n", ((mat_int64_t*)matvar->data)[i]);
+            {
+               mat_uint64_t *data = matvar->data;
+               for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                    for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                        printf("%lu ", data[matvar->dims[0]*j+i]);
+                    if ( j < matvar->dims[1] )
+                        printf("...");
+                    printf("\n");
                 }
+                if ( i < matvar->dims[0] )
+                    printf(".\n.\n.\n");
                 break;
-#endif /* HAVE_MAT_UINT64_T */
+            }
+#endif
             case MAT_C_INT32:
-                if ( !printdata )
-                    break;
-                if ( matvar->rank > 2 ) {
-                    printf("I can't print more than 2 dimensions\n");
-                } else if ( matvar->rank == 1 && matvar->dims[0] > 15 ) {
-                    printf("I won't print more than 15 elements in a vector\n");
-                } else if ( matvar->rank == 2 &&
-                         (matvar->dims[0] > 15 || matvar->dims[1] > 15) ) {
-                    for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
-                        for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
-                            printf("%d ", ((mat_int32_t*)matvar->data)[matvar->dims[0]*j+i]);
-                        if ( j < matvar->dims[1] )
-                            printf("...");
-                        printf("\n");
-                    }
-                    if ( i < matvar->dims[0] )
-                        printf(".\n.\n.\n");
-                } else if ( matvar->rank == 2 ) {
-                    for ( i = 0; i < matvar->dims[0]; i++ ) {
-                        for ( j = 0; j < matvar->dims[1]; j++ )
-                            printf("%d ", ((mat_uint32_t*)matvar->data)[matvar->dims[0]*j+i]);
-                        printf("\n");
-                    }
-                } else {
-                    for ( i = 0; i < matvar->nbytes/matvar->data_size; i++ )
-                        printf("%d\n", ((mat_int32_t*)matvar->data)[i]);
+            {
+               mat_int32_t *data = matvar->data;
+               for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                    for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                        printf("%ld ", data[matvar->dims[0]*j+i]);
+                    if ( j < matvar->dims[1] )
+                        printf("...");
+                    printf("\n");
                 }
+                if ( i < matvar->dims[0] )
+                    printf(".\n.\n.\n");
                 break;
+            }
             case MAT_C_UINT32:
-                if ( !printdata )
-                    break;
-                if ( matvar->rank > 2 ) {
-                    printf("I can't print more than 2 dimensions\n");
-                } else if ( matvar->rank == 1 && matvar->dims[0] > 15 ) {
-                    printf("I won't print more than 15 elements in a vector\n");
-                } else if ( matvar->rank == 2 &&
-                         (matvar->dims[0] > 15 || matvar->dims[1] > 15) ) {
-                    for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
-                        for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
-                            printf("%u ", ((mat_uint32_t*)matvar->data)[matvar->dims[0]*j+i]);
-                        if ( j < matvar->dims[1] )
-                            printf("...");
-                        printf("\n");
-                    }
-                    if ( i < matvar->dims[0] )
-                        printf(".\n.\n.\n");
-                } else if ( matvar->rank == 2 ) {
-                    for ( i = 0; i < matvar->dims[0]; i++ ) {
-                        for ( j = 0; j < matvar->dims[1]; j++ )
-                            printf("%u ", ((mat_uint32_t*)matvar->data)[matvar->dims[0]*j+i]);
-                        printf("\n");
-                    }
-                } else {
-                    for ( i = 0; i < matvar->nbytes/matvar->data_size; i++ )
-                        printf("%u\n", ((mat_int32_t*)matvar->data)[i]);
+            {
+               mat_uint32_t *data = matvar->data;
+               for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                    for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                        printf("%lu ", data[matvar->dims[0]*j+i]);
+                    if ( j < matvar->dims[1] )
+                        printf("...");
+                    printf("\n");
                 }
+                if ( i < matvar->dims[0] )
+                    printf(".\n.\n.\n");
                 break;
+            }
             case MAT_C_INT16:
-                if ( !printdata )
-                    break;
-                if ( matvar->rank > 2 ) {
-                    printf("I can't print more than 2 dimensions\n");
-                } else if ( matvar->rank == 1 && matvar->dims[0] > 15 ) {
-                    printf("I won't print more than 15 elements in a vector\n");
-                } else if ( matvar->rank == 2 &&
-                         (matvar->dims[0] > 15 || matvar->dims[1] > 15) ) {
-                    for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
-                        for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
-                            printf("%hd ", ((mat_int16_t*)matvar->data)[matvar->dims[0]*j+i]);
-                        if ( j < matvar->dims[1] )
-                            printf("...");
-                        printf("\n");
-                    }
-                    if ( i < matvar->dims[0] )
-                        printf(".\n.\n.\n");
-                } else if ( matvar->rank == 2 ) {
-                    for ( i = 0; i < matvar->dims[0]; i++ ) {
-                        for ( j = 0; j < matvar->dims[1]; j++ )
-                            printf("%hd ", ((mat_uint16_t*)matvar->data)[matvar->dims[0]*j+i]);
-                        printf("\n");
-                    }
-                } else {
-                    for ( i = 0; i < matvar->nbytes/matvar->data_size; i++ )
-                        printf("%hd\n", ((mat_int16_t*)matvar->data)[i]);
+            {
+               mat_int16_t *data = matvar->data;
+               for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                    for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                        printf("%ld ", data[matvar->dims[0]*j+i]);
+                    if ( j < matvar->dims[1] )
+                        printf("...");
+                    printf("\n");
                 }
+                if ( i < matvar->dims[0] )
+                    printf(".\n.\n.\n");
                 break;
+            }
             case MAT_C_UINT16:
-                if ( !printdata )
-                    break;
-                if ( matvar->rank > 2 ) {
-                    printf("I can't print more than 2 dimensions\n");
-                } else if ( matvar->rank == 1 && matvar->dims[0] > 15 ) {
-                    printf("I won't print more than 15 elements in a vector\n");
-                } else if ( matvar->rank == 2 &&
-                         (matvar->dims[0] > 15 || matvar->dims[1] > 15) ) {
-                    for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
-                        for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
-                            printf("%hu ", ((mat_uint16_t*)matvar->data)[matvar->dims[0]*j+i]);
-                        if ( j < matvar->dims[1] )
-                            printf("...");
-                        printf("\n");
-                    }
-                    if ( i < matvar->dims[0] )
-                        printf(".\n.\n.\n");
-                } else if ( matvar->rank == 2 ) {
-                    for ( i = 0; i < matvar->dims[0]; i++ ) {
-                        for ( j = 0; j < matvar->dims[1]; j++ )
-                            printf("%hu ", ((mat_uint16_t*)matvar->data)[matvar->dims[0]*j+i]);
-                        printf("\n");
-                    }
-                } else {
-                    for ( i = 0; i < matvar->nbytes/matvar->data_size; i++ )
-                        printf("%hu\n", ((mat_int32_t*)matvar->data)[i]);
+            {
+               mat_uint16_t *data = matvar->data;
+               for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                    for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                        printf("%lu ", data[matvar->dims[0]*j+i]);
+                    if ( j < matvar->dims[1] )
+                        printf("...");
+                    printf("\n");
                 }
+                if ( i < matvar->dims[0] )
+                    printf(".\n.\n.\n");
                 break;
+            }
             case MAT_C_INT8:
-                if ( !printdata )
-                    break;
-                if ( matvar->rank > 2 ) {
-                    printf("I can't print more than 2 dimensions\n");
-                } else if ( matvar->rank == 1 && matvar->dims[0] > 15 ) {
-                    printf("I won't print more than 15 elements in a vector\n");
-                } else if ( matvar->rank == 2 &&
-                         (matvar->dims[0] > 15 || matvar->dims[1] > 15) ) {
-                    for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
-                        for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
-                            printf("%hd ", ((mat_int8_t*)matvar->data)[matvar->dims[0]*j+i]);
-                        if ( j < matvar->dims[1] )
-                            printf("...");
-                        printf("\n");
-                    }
-                    if ( i < matvar->dims[0] )
-                        printf(".\n.\n.\n");
-                } else if ( matvar->rank == 2 ) {
-                    for ( i = 0; i < matvar->dims[0]; i++ ) {
-                        for ( j = 0; j < matvar->dims[1]; j++ )
-                            printf("%hd ", ((mat_int8_t*)matvar->data)[matvar->dims[0]*j+i]);
-                        printf("\n");
-                    }
-                } else {
-                    for ( i = 0; i < matvar->nbytes/matvar->data_size; i++ )
-                        printf("%hd\n", ((mat_int8_t*)matvar->data)[i]);
+            {
+               mat_int8_t *data = matvar->data; 
+               for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                    for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                        printf("%ld ", data[matvar->dims[0]*j+i]);
+                    if ( j < matvar->dims[1] )
+                        printf("...");
+                    printf("\n");
                 }
+                if ( i < matvar->dims[0] )
+                    printf(".\n.\n.\n");
                 break;
+            }
             case MAT_C_UINT8:
-                if ( !printdata )
-                    break;
-                if ( matvar->rank > 2 ) {
-                    printf("I can't print more than 2 dimensions\n");
-                } else if ( matvar->rank == 1 && matvar->dims[0] > 15 ) {
-                    printf("I won't print more than 15 elements in a vector\n");
-                } else if ( matvar->rank == 2 &&
-                         (matvar->dims[0] > 15 || matvar->dims[1] > 15) ) {
-                    for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
-                        for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
-                            printf("%hu ", ((mat_uint8_t*)matvar->data)[matvar->dims[0]*j+i]);
-                        if ( j < matvar->dims[1] )
-                            printf("...");
-                        printf("\n");
-                    }
-                    if ( i < matvar->dims[0] )
-                        printf(".\n.\n.\n");
-                } else if ( matvar->rank == 2 ) {
-                    for ( i = 0; i < matvar->dims[0]; i++ ) {
-                        for ( j = 0; j < matvar->dims[1]; j++ )
-                            printf("%hu ", ((mat_uint8_t*)matvar->data)[matvar->dims[0]*j+i]);
-                        printf("\n");
-                    }
-                } else {
-                    for ( i = 0; i < matvar->nbytes/matvar->data_size; i++ )
-                        printf("%hu\n", ((mat_uint8_t*)matvar->data)[i]);
+            {
+               mat_uint8_t *data = matvar->data;
+               for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
+                    for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
+                        printf("%lu ", data[matvar->dims[0]*j+i]);
+                    if ( j < matvar->dims[1] )
+                        printf("...");
+                    printf("\n");
                 }
+                if ( i < matvar->dims[0] )
+                    printf(".\n.\n.\n");
                 break;
+            }
             case MAT_C_CHAR:
+            {
                 if ( !printdata )
                     break;
                 if ( matvar->dims[0] == 1 ) {
@@ -6600,28 +6510,10 @@ Mat_VarPrint5( matvar_t *matvar, int printdata )
                     }
                 }
                 break;
-            case MAT_C_STRUCT:
-            {
-                matvar_t **fields = (matvar_t **)matvar->data;
-                int nfields = matvar->nbytes / matvar->data_size;
-                Mat_Message("Fields[%d] {", nfields);
-                for ( i = 0; i < nfields; i++ )
-                    Mat_VarPrint(fields[i],printdata);
-                Mat_Message("}");
-                break;
-            }
-            case MAT_C_CELL:
-            {
-                matvar_t **fields = (matvar_t **)matvar->data;
-                int nfields = matvar->nbytes / matvar->data_size;
-                for ( i = 0; i < nfields; i++ )
-                    Mat_VarPrint(fields[i],printdata);
-                break;
             }
             case MAT_C_SPARSE:
             {
                 sparse_t *sparse;
-/* FIXME: ComplexSplit */
 #if defined(EXTENDED_SPARSE)
                 sparse = matvar->data;
                 switch ( matvar->data_type ) {
@@ -6854,7 +6746,7 @@ Mat_VarPrint5( matvar_t *matvar, int printdata )
                         break;
                     }
                 }
-#else
+#else /* if defined(EXTENDED_SPARSE) */
                 double *data;
 
                 sparse = matvar->data;
@@ -6875,19 +6767,13 @@ Mat_VarPrint5( matvar_t *matvar, int printdata )
                                 data[j]);
                     }
                 }
-#endif
-                break;
+#endif /* defined(EXTENDED_SPARSE) */
             }
-            default:
-                printf("I can't print this class\n");
         }
-    } else {
-        if ( printdata && !matvar->data  )
-            Mat_Warning("Data is NULL");
-        if ( printdata && matvar->data_size < 1 )
-            Mat_Warning("data-size is %d",matvar->data_size);
     }
-    Mat_Message("\n");
+
+    Mat_Message("}");
+
     return;
 }
 
