@@ -30,7 +30,7 @@
 #include "mat5.h"
 #include "mat4.h"
 #include "matio_private.h"
-#ifdef MAT73
+#if MAT73
 #   include "mat73.h"
 #endif
 
@@ -170,7 +170,7 @@ Mat_Open(const char *matname,int mode)
 
     if ( mat->version == 0x0200 ) {
         fclose(mat->fp);
-#ifdef MAT73
+#if MAT73
 
         mat->fp = malloc(sizeof(hid_t));
 
@@ -205,7 +205,7 @@ int
 Mat_Close( mat_t *mat )
 {
     if ( NULL != mat ) {
-#ifdef MAT73
+#if MAT73
         if ( mat->version == 0x0200 ) {
             H5Fclose(*(hid_t*)mat->fp);
             free(mat->fp);
@@ -322,6 +322,15 @@ Mat_VarCalloc(void)
 #if defined(HAVE_ZLIB)
         matvar->z            = NULL;
 #endif
+        matvar->internal     = malloc(sizeof(*matvar->internal));
+        if ( NULL == matvar->internal ) {
+            free(matvar);
+            matvar = NULL;
+        } else {
+            matvar->internal->hdf5_name = NULL;
+            matvar->internal->hdf5_ref  =  0;
+            matvar->internal->id        = -1;
+        }
     }
 
     return matvar;
@@ -738,6 +747,36 @@ Mat_VarFree(matvar_t *matvar)
     if ( matvar->compression == COMPRESSION_ZLIB ) {
         inflateEnd(matvar->z);
         free(matvar->z);
+    }
+#endif
+#if MAT73
+    if ( -1 < matvar->internal->id ) {
+        switch ( H5Iget_type(matvar->internal->id) ) {
+            case H5I_GROUP:
+                H5Gclose(matvar->internal->id);
+                matvar->internal->id = -1;
+                break;
+            case H5I_DATASET:
+                H5Dclose(matvar->internal->id);
+                matvar->internal->id = -1;
+                break;
+            default:
+                break;
+        }
+    }
+    if ( 0 < matvar->internal->hdf5_ref ) {
+        switch ( H5Iget_type(matvar->internal->id) ) {
+            case H5I_GROUP:
+                H5Gclose(matvar->internal->id);
+                matvar->internal->hdf5_ref = -1;
+                break;
+            case H5I_DATASET:
+                H5Dclose(matvar->internal->id);
+                matvar->internal->hdf5_ref = -1;
+                break;
+            default:
+                break;
+        }
     }
 #endif
     /* FIXME: Why does this cause a SEGV? */
@@ -1820,14 +1859,16 @@ Mat_VarReadNext( mat_t *mat )
     long fpos;
     matvar_t *matvar = NULL;
 
-    if ( feof(mat->fp) )
-        return NULL;
-    /* Read position so we can reset the file position if an error occurs */
-    fpos = ftell(mat->fp);
+    if ( mat->version != MAT_FT_MAT73 ) {
+        if ( feof(mat->fp) )
+            return NULL;
+        /* Read position so we can reset the file position if an error occurs */
+        fpos = ftell(mat->fp);
+    }
     matvar = Mat_VarReadNextInfo(mat);
     if ( matvar )
         ReadData(mat,matvar);
-    else
+    else if (mat->version != MAT_FT_MAT73 )
         fseek(mat->fp,fpos,SEEK_SET);
     return matvar;
 }
@@ -1941,7 +1982,7 @@ Mat_VarWrite(mat_t *mat,matvar_t *matvar,int compress)
         return -1;
     else if ( mat->version == MAT_FT_MAT5 )
         Mat_VarWrite5(mat,matvar,compress);
-#ifdef MAT73
+#if MAT73
     else if ( mat->version == MAT_FT_MAT73 )
         Mat_VarWrite73(mat,matvar,compress);
 #endif

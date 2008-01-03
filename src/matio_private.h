@@ -2,6 +2,11 @@
 #define MATIO_PRIVATE_H
 
 #include "matio.h"
+#if MAT73
+#   include <hdf5.h>
+#else
+#   define hobj_ref_t int
+#endif
 
 #ifndef EXTERN
 #   ifdef __cplusplus
@@ -10,6 +15,12 @@
 #       define EXTERN extern
 #   endif
 #endif
+
+struct matvar_internal {
+    char *hdf5_name;
+    hobj_ref_t hdf5_ref;
+    hid_t      id;
+};
 
 /*    snprintf.c    */
 EXTERN int mat_snprintf(char *str,size_t count,const char *fmt,...);

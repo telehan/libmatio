@@ -210,6 +210,9 @@ typedef struct mat_t {
     long  num_datasets;     /**< Number of datasets in the file */
 } mat_t;
 
+/* Incomplete definition for private library data */
+struct matvar_internal;
+
 /** @brief Matlab variable information
  *
  * Contains information about a Matlab variable
@@ -235,10 +238,7 @@ typedef struct matvar_t {
 #if defined(HAVE_ZLIB)
     z_stream *z;        /**< zlib compression state */
 #endif
-#if MAT73
-    /* FIXME */
-    char *hdf5_name;
-#endif
+    struct matvar_internal *internal; /**< matio internal data */
 } matvar_t;
 
 /** @brief sparse data information
