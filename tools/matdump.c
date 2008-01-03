@@ -117,10 +117,80 @@ print_whos(matvar_t *matvar)
     return;
 }
 
+static int indent = 0;
+
+static void
+default_printf_func(int log_level,char *message)
+{
+    int i;
+
+    for ( i = 0; i < indent; i++ )
+        printf("    ");
+    printf("%s\n",message);
+}
+
 static void
 print_default(matvar_t *matvar)
 {
-    Mat_VarPrint(matvar, printdata);
+    if ( NULL == matvar )
+        return;
+
+    switch ( matvar->class_type ) {
+        case MAT_C_DOUBLE:
+        case MAT_C_SINGLE:
+        case MAT_C_INT64:
+        case MAT_C_UINT64:
+        case MAT_C_INT32:
+        case MAT_C_UINT32:
+        case MAT_C_INT16:
+        case MAT_C_UINT16:
+        case MAT_C_INT8:
+        case MAT_C_UINT8:
+        case MAT_C_CHAR:
+        case MAT_C_SPARSE:
+            Mat_VarPrint(matvar, printdata);
+            break;
+        case MAT_C_STRUCT:
+        {
+            matvar_t **fields = (matvar_t **)matvar->data;
+            int        nfields = matvar->nbytes / matvar->data_size;
+            int        i;
+
+            if ( matvar->name )
+                Mat_Message("      Name: %s", matvar->name);
+            Mat_Message("      Rank: %d", matvar->rank);
+            if ( matvar->rank == 0 )
+                return;
+            Mat_Message("Class Type: Structure");
+            Mat_Message("Fields[%d] {", nfields);
+            indent++;
+            for ( i = 0; i < nfields; i++ )
+                print_default(fields[i]);
+            indent--;
+            Mat_Message("}");
+            break;
+        }
+        case MAT_C_CELL:
+        {
+            matvar_t **cells = (matvar_t **)matvar->data;
+            int        ncells = matvar->nbytes / matvar->data_size;
+            int        i;
+
+            if ( matvar->name )
+                Mat_Message("      Name: %s", matvar->name);
+            Mat_Message("      Rank: %d", matvar->rank);
+            if ( matvar->rank == 0 )
+                return;
+            Mat_Message("Class Type: Cell Array");
+            Mat_Message("{");
+            indent++;
+            for ( i = 0; i < ncells; i++ )
+                print_default(cells[i]);
+            indent--;
+            Mat_Message("}");
+            break;
+        }
+    }
 }
 
 static int
@@ -145,7 +215,7 @@ main (int argc, char *argv[])
     mat_t    *mat;
     matvar_t *matvar;
 
-    Mat_LogInit(prog_name);
+    Mat_LogInitFunc(prog_name,default_printf_func);
 
     printfunc = print_default;
 
@@ -239,6 +309,8 @@ main (int argc, char *argv[])
     }
 
     Mat_Close(mat);
+
+    Mat_LogClose();
 
     return err;
 }
