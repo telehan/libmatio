@@ -750,32 +750,34 @@ Mat_VarFree(matvar_t *matvar)
     }
 #endif
 #if MAT73
-    if ( -1 < matvar->internal->id ) {
-        switch ( H5Iget_type(matvar->internal->id) ) {
-            case H5I_GROUP:
-                H5Gclose(matvar->internal->id);
-                matvar->internal->id = -1;
-                break;
-            case H5I_DATASET:
-                H5Dclose(matvar->internal->id);
-                matvar->internal->id = -1;
-                break;
-            default:
-                break;
+    if ( NULL != matvar->internal ) {
+        if ( -1 < matvar->internal->id ) {
+            switch ( H5Iget_type(matvar->internal->id) ) {
+                case H5I_GROUP:
+                    H5Gclose(matvar->internal->id);
+                    matvar->internal->id = -1;
+                    break;
+                case H5I_DATASET:
+                    H5Dclose(matvar->internal->id);
+                    matvar->internal->id = -1;
+                    break;
+                default:
+                    break;
+            }
         }
-    }
-    if ( 0 < matvar->internal->hdf5_ref ) {
-        switch ( H5Iget_type(matvar->internal->id) ) {
-            case H5I_GROUP:
-                H5Gclose(matvar->internal->id);
-                matvar->internal->hdf5_ref = -1;
-                break;
-            case H5I_DATASET:
-                H5Dclose(matvar->internal->id);
-                matvar->internal->hdf5_ref = -1;
-                break;
-            default:
-                break;
+        if ( 0 < matvar->internal->hdf5_ref ) {
+            switch ( H5Iget_type(matvar->internal->id) ) {
+                case H5I_GROUP:
+                    H5Gclose(matvar->internal->id);
+                    matvar->internal->hdf5_ref = -1;
+                    break;
+                case H5I_DATASET:
+                    H5Dclose(matvar->internal->id);
+                    matvar->internal->hdf5_ref = -1;
+                    break;
+                default:
+                    break;
+            }
         }
     }
 #endif
