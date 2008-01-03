@@ -45,7 +45,8 @@
 #endif
 
 /** @defgroup MAT Matlab MAT File I/O Library */
-/** @defgroup mat_internal Internal Functions */
+/** @defgroup mat_util MAT File I/O Utitlity Functions */
+/** @if mat_devman @defgroup mat_internal Internal Functions @endif */
 
 #ifdef _mat_int64_t
     typedef _mat_int64_t mat_int64_t;

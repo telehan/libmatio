@@ -47,6 +47,14 @@ static const char *v4_data_type_desc[23] = {
        "Structure"
 };
 
+/** @if mat_devman
+ * @brief Reads the data of a version 4 MAT file variable
+ *
+ * @ingroup mat_internal
+ * @param mat MAT file pointer
+ * @param matvar MAT variable pointer to read the data
+ * @endif
+ */
 void
 Read4(mat_t *mat,matvar_t *matvar)
 {
@@ -148,7 +156,20 @@ Read4(mat_t *mat,matvar_t *matvar)
     return;
 }
 
-/* Reads a slab of data from the variable */
+/** @if mat_devman
+ * @brief Reads a slab of data from a version 4 MAT file for the @c matvar variable
+ *
+ * @ingroup mat_internal
+ * @param mat Version 4 MAT file pointer
+ * @param matvar pointer to the mat variable
+ * @param data pointer to store the read data in (must be of size
+ *             edge[0]*...edge[rank-1]*Mat_SizeOfClass(matvar->class_type))
+ * @param start index to start reading data in each dimension
+ * @param stride write data every @c stride elements in each dimension
+ * @param edge number of elements to read in each dimension
+ * @retval 0 on success
+ * @endif
+ */
 int
 ReadData4(mat_t *mat,matvar_t *matvar,void *data,
       int *start,int *stride,int *edge)
@@ -207,6 +228,14 @@ ReadData4(mat_t *mat,matvar_t *matvar,void *data,
     return err;
 }
 
+/** @if mat_devman
+ * @brief Reads the header information for the next MAT variable in a version 4 MAT file
+ *
+ * @ingroup mat_internal
+ * @param mat MAT file pointer
+ * @retuen pointer to the MAT variable or NULL
+ * @endif
+ */
 matvar_t *
 Mat_VarReadNextInfo4(mat_t *mat)
 {       
@@ -318,6 +347,14 @@ Mat_VarReadNextInfo4(mat_t *mat)
     return matvar;  
 }
 
+/** @if mat_devman
+ * @brief Prints the variable from a MAT version 4 file
+ *
+ * @ingroup mat_internal
+ * @param mat MAT file pointer
+ * @param matvar pointer to the mat variable
+ * @endif
+ */
 void
 Mat_VarPrint4(matvar_t *matvar,int printdata)
 {

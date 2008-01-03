@@ -1237,7 +1237,8 @@ Mat_WriteNextStructField73(hid_t id,matvar_t *matvar,const char *name)
     return 0;
 }
 
-/** @brief Creates a new Matlab MAT version 7.3 file
+/** @if mat_devman
+ * @brief Creates a new Matlab MAT version 7.3 file
  *
  * Tries to create a new Matlab MAT file with the given name and optional
  * header string.  If no header string is given, the default string
@@ -1250,6 +1251,7 @@ Mat_WriteNextStructField73(hid_t id,matvar_t *matvar,const char *name)
  * @param hdr_str Optional header string, NULL to use default
  * @return A pointer to the MAT file or NULL if it failed.  This is not a
  * simple FILE * and should not be used as one.
+ * @endif
  */
 mat_t *
 Mat_Create73(const char *matname,const char *hdr_str)
@@ -1326,11 +1328,13 @@ Mat_Create73(const char *matname,const char *hdr_str)
     return mat;
 }
 
-/** @brief Prints the mat variable
+/** @if mat_devman
+ * @brief Prints the mat variable
  *
  * @ingroup mat_internal
  * @param mat MAT file pointer
  * @param matvar pointer to the mat variable
+ * @endif
  */
 void
 Mat_VarPrint73(matvar_t *matvar,int printdata)
@@ -1554,11 +1558,13 @@ Mat_VarPrint73(matvar_t *matvar,int printdata)
     return;
 }
 
-/** @brief Reads the MAT variable identified by matvar
+/** @if mat_devman
+ * @brief Reads the MAT variable identified by matvar
  *
  * @ingroup mat_internal
  * @param mat MAT file pointer
  * @param matvar MAT variable pointer
+ * @endif
  */
 void
 Mat_VarRead73(mat_t *mat,matvar_t *matvar)
@@ -1780,11 +1786,13 @@ Mat_VarRead73(mat_t *mat,matvar_t *matvar)
     }
 }
 
-/** @brief Reads the header information for the next MAT variable
+/** @if mat_devman
+ * @brief Reads the header information for the next MAT variable
  *
  * @ingroup mat_internal
  * @param mat MAT file pointer
  * @return pointer to the MAT variable or NULL
+ * @endif
  */
 matvar_t *
 Mat_VarReadNextInfo73( mat_t *mat )
@@ -1939,7 +1947,8 @@ Mat_VarReadNextInfo73( mat_t *mat )
     return matvar;
 }
 
-/** @brief Writes a matlab variable to a version 7.3 matlab file
+/** @if mat_devman
+ * @brief Writes a matlab variable to a version 7.3 matlab file
  *
  * @ingroup mat_internal
  * @param mat MAT file pointer
@@ -1947,6 +1956,7 @@ Mat_VarReadNextInfo73( mat_t *mat )
  * @param compress option to compress the variable
  *                 (only works for numeric types)
  * @retval 0 on success
+ * @endif
  */
 int
 Mat_VarWrite73(mat_t *mat,matvar_t *matvar,int compress)

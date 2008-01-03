@@ -67,6 +67,7 @@ ReadData(mat_t *mat, matvar_t *matvar)
  * @ingroup MAT
  * @param matname Name of MAT file to create
  * @param hdr_str Optional header string, NULL to use default
+ * @param mat_file_ver MAT file version to create
  * @return A pointer to the MAT file or NULL if it failed.  This is not a
  * simple FILE * and should not be used as one.
  */

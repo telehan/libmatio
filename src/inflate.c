@@ -23,6 +23,8 @@
 #include "matio.h"
 #include "matio_private.h"
 
+/** @cond mat_devman */
+
 /** @brief Inflate the data until @c nbytes of uncompressed data has been
  *         inflated
  *
@@ -838,3 +840,5 @@ InflateFieldNames(mat_t *mat,matvar_t *matvar,void *buf,int nfields,
 
     return bytesread;
 }
+
+/** @endcond */

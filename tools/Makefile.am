@@ -1,5 +1,6 @@
+## Makefile.am -- Process this file with automake to produce Makefile.in
 ##
-## Copyright (C) 2005-2006   Christopher C. Hulbert
+## Copyright (C) 2005-2008   Christopher C. Hulbert
 ##
 ##  This library is free software; you can redistribute it and/or
 ##  modify it under the terms of the GNU Lesser General Public
@@ -23,8 +24,9 @@ GETOPT_CFLAGS = -I$(top_builddir)/getopt/lib
 GETOPT_LIBS   = $(top_builddir)/getopt/lib/libgnu.la
 endif
 
-AM_CFLAGS = -I$(top_srcdir)/src $(GETOPT_CFLAGS) $(HDF5_CFLAGS) $(ZLIB_CFLAGS)
-AM_LDFLAGS = $(FCLDFLAGS)
+AM_CFLAGS = -I$(top_srcdir)/src $(GETOPT_CFLAGS) $(HDF5_CFLAGS) $(ZLIB_CFLAGS) \
+            $(LT_CFLAGS)
+AM_LDFLAGS = $(LT_LDFLAGS) $(FCLDFLAGS)
 
 bin_PROGRAMS = matdump
 

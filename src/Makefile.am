@@ -1,5 +1,6 @@
+## Makefile.am -- Process this file with automake to produce Makefile.in
 ##
-## Copyright (C) 2005-2006   Christopher C. Hulbert
+## Copyright (C) 2005-2008   Christopher C. Hulbert
 ##
 ##  This library is free software; you can redistribute it and/or
 ##  modify it under the terms of the GNU Lesser General Public
@@ -18,8 +19,12 @@
 AUTOMAKE_OPTIONS = foreign 1.8 no-dependencies
 VPATH = @srcdir@
 
-AM_CFLAGS  = -I. $(HDF5_CFLAGS) $(ZLIB_CFLAGS)
-AM_LDFLAGS =
+LT_CURRENT=2
+LT_REVISION=0
+LT_AGE=0
+
+AM_CFLAGS  = -I. $(HDF5_CFLAGS) $(ZLIB_CFLAGS) $(LT_CFLAGS)
+AM_LDFLAGS = -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) $(LT_LDFLAGS)
 
 if HAVE_ZLIB
     ZLIB_SRC = inflate.c
