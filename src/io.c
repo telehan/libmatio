@@ -332,7 +332,7 @@ void Mat_Help( const char *helpstr[] )
  * @retval 1
  */
 int
-Mat_LogClose( )
+Mat_LogClose( void )
 {
     logfunc = NULL;
     return 1;
