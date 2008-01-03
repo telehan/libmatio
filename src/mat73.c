@@ -565,7 +565,7 @@ Mat_H5ReadGroupInfo(mat_t *mat,matvar_t *matvar,hid_t dset_id)
                     case H5T_COMPOUND:
                     {
                         fields[k] = Mat_VarCalloc();
-                        fields[k]->fp   = mat;
+                        fields[k]->internal->fp   = mat;
                         fields[k]->name = strdup(fieldnames[k]);
                         Mat_H5ReadDatasetInfo(mat,fields[k],field_id);
                         break;
@@ -574,7 +574,7 @@ Mat_H5ReadGroupInfo(mat_t *mat,matvar_t *matvar,hid_t dset_id)
                 H5Dclose(field_id);
             } else if ( -1 < (field_id=H5Gopen(dset_id,fieldnames[k])) ) {
                 fields[k] = Mat_VarCalloc();
-                fields[k]->fp   = mat;
+                fields[k]->internal->fp   = mat;
                 fields[k]->name = strdup(fieldnames[k]);
                 Mat_H5ReadGroupInfo(mat,fields[k],field_id);
                 H5Gclose(field_id);
@@ -1838,7 +1838,7 @@ Mat_VarReadNextInfo73( mat_t *mat )
             hsize_t  dims[10];
             hid_t   attr_id,type_id,dset_id,space_id;
 
-            matvar->fp = mat;
+            matvar->internal->fp = mat;
             name_len = H5Gget_objname_by_idx(fid,mat->next_index,NULL,0);
             matvar->name = malloc(1+name_len);
             if ( matvar->name ) {
@@ -1926,7 +1926,7 @@ Mat_VarReadNextInfo73( mat_t *mat )
             hid_t   attr_id,type_id,dset_id,space_id,field_id,field_type_id;
             matvar_t **fields;
 
-            matvar->fp = mat;
+            matvar->internal->fp = mat;
             name_len = H5Gget_objname_by_idx(fid,mat->next_index,NULL,0);
             matvar->name = malloc(1+name_len);
             if ( matvar->name ) {

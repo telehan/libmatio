@@ -317,12 +317,6 @@ Mat_VarCalloc(void)
         matvar->data         = NULL;
         matvar->mem_conserve = 0;
         matvar->compression  = 0;
-        matvar->fpos         = 0;
-        matvar->datapos      = 0;
-        matvar->fp           = NULL;
-#if defined(HAVE_ZLIB)
-        matvar->z            = NULL;
-#endif
         matvar->internal     = malloc(sizeof(*matvar->internal));
         if ( NULL == matvar->internal ) {
             free(matvar);
@@ -331,6 +325,12 @@ Mat_VarCalloc(void)
             matvar->internal->hdf5_name = NULL;
             matvar->internal->hdf5_ref  =  0;
             matvar->internal->id        = -1;
+            matvar->internal->fp = NULL;
+            matvar->internal->fpos         = 0;
+            matvar->internal->datapos      = 0;
+#if defined(HAVE_ZLIB)
+            matvar->internal->z         = NULL;
+#endif
         }
     }
 
@@ -611,7 +611,7 @@ Mat_VarDuplicate(const matvar_t *in, int opt)
     matvar_t *out;
     int i;
 
-    out = malloc(sizeof(matvar_t));
+    out = Mat_VarCalloc();
     if ( out == NULL )
         return NULL;
 
@@ -625,14 +625,20 @@ Mat_VarDuplicate(const matvar_t *in, int opt)
     out->isLogical    = in->isLogical;
     out->mem_conserve = in->mem_conserve;
     out->compression  = in->compression;
-    out->fpos         = in->fpos;
-    out->datapos      = in->datapos;
 
     out->name = NULL;
     out->dims = NULL;
     out->data = NULL;
+
+    if ( NULL != in->internal->hdf5_name )
+        out->internal->hdf5_name = strdup(in->internal->hdf5_name);
+
+    out->internal->hdf5_ref = in->internal->hdf5_ref;
+    out->internal->id       = in->internal->id;
+    out->internal->fpos     = in->internal->fpos;
+    out->internal->datapos  = in->internal->datapos;
 #if defined(HAVE_ZLIB)
-    out->z    = NULL;
+    out->internal->z        = NULL;
 #endif
 
     if (in->name != NULL && (NULL != (out->name = malloc(strlen(in->name)+1))))
@@ -642,8 +648,8 @@ Mat_VarDuplicate(const matvar_t *in, int opt)
     if ( out->dims != NULL )
         memcpy(out->dims,in->dims,in->rank*sizeof(int));
 #if defined(HAVE_ZLIB)
-    if ( (in->z != NULL) && (NULL != (out->z = malloc(sizeof(z_stream)))) )
-        inflateCopy(out->z,in->z);
+    if ( (in->internal->z != NULL) && (NULL != (out->internal->z = malloc(sizeof(z_stream)))) )
+        inflateCopy(out->internal->z,in->internal->z);
 #endif
 
     if ( !opt ) {
@@ -746,8 +752,8 @@ Mat_VarFree(matvar_t *matvar)
     }
 #if defined(HAVE_ZLIB)
     if ( matvar->compression == COMPRESSION_ZLIB ) {
-        inflateEnd(matvar->z);
-        free(matvar->z);
+        inflateEnd(matvar->internal->z);
+        free(matvar->internal->z);
     }
 #endif
 #if MAT73
@@ -823,7 +829,7 @@ Mat_VarFree2(matvar_t *matvar)
     }
 #if defined(HAVE_ZLIB)
     if ( matvar->compression == COMPRESSION_ZLIB )
-        inflateEnd(matvar->z);
+        inflateEnd(matvar->internal->z);
 #endif
     /* FIXME: Why does this cause a SEGV? */
 #if 0
@@ -1367,13 +1373,14 @@ Mat_VarGetStructsLinear(matvar_t *matvar,int start,int stride,int edge,
 void
 Mat_VarPrint( matvar_t *matvar, int printdata )
 {
-    if ( matvar == NULL || matvar->fp == NULL )
+    if ( matvar == NULL || matvar->internal == NULL ||
+         matvar->internal->fp == NULL )
         return;
-    else if ( matvar->fp->version == MAT_FT_MAT5 )
+    else if ( matvar->internal->fp->version == MAT_FT_MAT5 )
         Mat_VarPrint5(matvar,printdata);
-    else if ( matvar->fp->version == MAT_FT_MAT73 )
+    else if ( matvar->internal->fp->version == MAT_FT_MAT73 )
         Mat_VarPrint73(matvar,printdata);
-    else if ( matvar->fp->version == MAT_FT_MAT4 )
+    else if ( matvar->internal->fp->version == MAT_FT_MAT4 )
         Mat_VarPrint4(matvar,printdata);
     return;
 }
@@ -1447,7 +1454,7 @@ Mat_VarReadDataLinear(mat_t *mat,matvar_t *matvar,void *data,int start,
 
     if ( mat->version == MAT_FT_MAT4 )
         return -1;
-    fseek(mat->fp,matvar->datapos,SEEK_SET);
+    fseek(mat->fp,matvar->internal->datapos,SEEK_SET);
     if ( matvar->compression == COMPRESSION_NONE ) {
         fread(tag,4,2,mat->fp);
         if ( mat->byteswap ) {
@@ -1460,7 +1467,7 @@ Mat_VarReadDataLinear(mat_t *mat,matvar_t *matvar,void *data,int start,
         }
 #if defined(HAVE_ZLIB)
     } else if ( matvar->compression == COMPRESSION_ZLIB ) {
-        matvar->z->avail_in = 0;
+        matvar->internal->z->avail_in = 0;
         InflateDataType(mat,matvar,tag);
         if ( mat->byteswap ) {
             Mat_int32Swap(tag);
@@ -1468,7 +1475,7 @@ Mat_VarReadDataLinear(mat_t *mat,matvar_t *matvar,void *data,int start,
         }
         data_type = tag[0] & 0x000000ff;
         if ( !(tag[0] & 0xffff0000) ) {/* Data is NOT packed in the tag */
-            InflateSkip(mat,matvar->z,4);
+            InflateSkip(mat,matvar->internal->z,4);
         }
 #endif
     }
@@ -1495,7 +1502,7 @@ Mat_VarReadDataLinear(mat_t *mat,matvar_t *matvar,void *data,int start,
                 } else {
                     z_stream z_copy;
 
-                    err = inflateCopy(&z_copy,matvar->z);
+                    err = inflateCopy(&z_copy,matvar->internal->z);
                     InflateSkipData(mat,&z_copy,data_type,start);
                     for ( i = 0; i < edge; i++ ) {
                         ReadCompressedDoubleData(mat,&z_copy,(double*)data+i,
@@ -1519,7 +1526,7 @@ Mat_VarReadDataLinear(mat_t *mat,matvar_t *matvar,void *data,int start,
                 } else {
                     z_stream z_copy;
 
-                    err = inflateCopy(&z_copy,matvar->z);
+                    err = inflateCopy(&z_copy,matvar->internal->z);
                     InflateSkipData(mat,&z_copy,data_type,start);
                     for ( i = 0; i < edge; i++ ) {
                         ReadCompressedSingleData(mat,&z_copy,(float*)data+i,
@@ -1544,7 +1551,7 @@ Mat_VarReadDataLinear(mat_t *mat,matvar_t *matvar,void *data,int start,
                 } else {
                     z_stream z_copy;
 
-                    err = inflateCopy(&z_copy,matvar->z);
+                    err = inflateCopy(&z_copy,matvar->internal->z);
                     InflateSkipData(mat,&z_copy,data_type,start);
                     for ( i = 0; i < edge; i++ ) {
                         ReadCompressedInt64Data(mat,&z_copy,(mat_int64_t*)data+i,
@@ -1570,7 +1577,7 @@ Mat_VarReadDataLinear(mat_t *mat,matvar_t *matvar,void *data,int start,
                 } else {
                     z_stream z_copy;
 
-                    err = inflateCopy(&z_copy,matvar->z);
+                    err = inflateCopy(&z_copy,matvar->internal->z);
                     InflateSkipData(mat,&z_copy,data_type,start);
                     for ( i = 0; i < edge; i++ ) {
                         ReadCompressedInt64Data(mat,&z_copy,(mat_int64_t*)data+i,
@@ -1595,7 +1602,7 @@ Mat_VarReadDataLinear(mat_t *mat,matvar_t *matvar,void *data,int start,
                 } else {
                     z_stream z_copy;
 
-                    err = inflateCopy(&z_copy,matvar->z);
+                    err = inflateCopy(&z_copy,matvar->internal->z);
                     InflateSkipData(mat,&z_copy,data_type,start);
                     for ( i = 0; i < edge; i++ ) {
                         ReadCompressedInt32Data(mat,&z_copy,(mat_int32_t*)data+i,
@@ -1619,7 +1626,7 @@ Mat_VarReadDataLinear(mat_t *mat,matvar_t *matvar,void *data,int start,
                 } else {
                     z_stream z_copy;
 
-                    err = inflateCopy(&z_copy,matvar->z);
+                    err = inflateCopy(&z_copy,matvar->internal->z);
                     InflateSkipData(mat,&z_copy,data_type,start);
                     for ( i = 0; i < edge; i++ ) {
                         ReadCompressedInt32Data(mat,&z_copy,(mat_int32_t*)data+i,
@@ -1643,7 +1650,7 @@ Mat_VarReadDataLinear(mat_t *mat,matvar_t *matvar,void *data,int start,
                 } else {
                     z_stream z_copy;
 
-                    err = inflateCopy(&z_copy,matvar->z);
+                    err = inflateCopy(&z_copy,matvar->internal->z);
                     InflateSkipData(mat,&z_copy,data_type,start);
                     for ( i = 0; i < edge; i++ ) {
                         ReadCompressedInt16Data(mat,&z_copy,(mat_int16_t*)data+i,
@@ -1667,7 +1674,7 @@ Mat_VarReadDataLinear(mat_t *mat,matvar_t *matvar,void *data,int start,
                 } else {
                     z_stream z_copy;
 
-                    err = inflateCopy(&z_copy,matvar->z);
+                    err = inflateCopy(&z_copy,matvar->internal->z);
                     InflateSkipData(mat,&z_copy,data_type,start);
                     for ( i = 0; i < edge; i++ ) {
                         ReadCompressedInt16Data(mat,&z_copy,(mat_int16_t*)data+i,
@@ -1691,7 +1698,7 @@ Mat_VarReadDataLinear(mat_t *mat,matvar_t *matvar,void *data,int start,
                 } else {
                     z_stream z_copy;
 
-                    err = inflateCopy(&z_copy,matvar->z);
+                    err = inflateCopy(&z_copy,matvar->internal->z);
                     InflateSkipData(mat,&z_copy,data_type,start);
                     for ( i = 0; i < edge; i++ ) {
                         ReadCompressedInt8Data(mat,&z_copy,(mat_int8_t*)data+i,
@@ -1715,7 +1722,7 @@ Mat_VarReadDataLinear(mat_t *mat,matvar_t *matvar,void *data,int start,
                 } else {
                     z_stream z_copy;
 
-                    err = inflateCopy(&z_copy,matvar->z);
+                    err = inflateCopy(&z_copy,matvar->internal->z);
                     InflateSkipData(mat,&z_copy,data_type,start);
                     for ( i = 0; i < edge; i++ ) {
                         ReadCompressedInt8Data(mat,&z_copy,(mat_int8_t*)data+i,
@@ -1919,7 +1926,7 @@ Mat_VarWriteData(mat_t *mat,matvar_t *matvar,void *data,
 {
     int err = 0, k, N = 1;
 
-    fseek(mat->fp,matvar->datapos+8,SEEK_SET);
+    fseek(mat->fp,matvar->internal->datapos+8,SEEK_SET);
 
     if ( mat == NULL || matvar == NULL || data == NULL ) {
         err = -1;
@@ -1930,10 +1937,10 @@ Mat_VarWriteData(mat_t *mat,matvar_t *matvar,void *data,
             WriteData(mat,data,N,matvar->data_type);
 #if 0
         else if ( matvar->compression == COMPRESSION_ZLIB ) {
-            WriteCompressedData(mat,matvar->z,data,N,matvar->data_type);
-            (void)deflateEnd(matvar->z);
-            free(matvar->z);
-            matvar->z = NULL;
+            WriteCompressedData(mat,matvar->internal->z,data,N,matvar->data_type);
+            (void)deflateEnd(matvar->internal->z);
+            free(matvar->internal->z);
+            matvar->internal->z = NULL;
         }
 #endif
     } else if ( matvar->rank == 2 ) {

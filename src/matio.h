@@ -193,23 +193,12 @@ struct ComplexSplit {
     void *Im; /**< Pointer to the imaginary part */
 };
 
+struct _mat_t;
 /** @brief Matlab MAT File information
- *
  * Contains information about a Matlab MAT file
  * @ingroup MAT
  */
-typedef struct mat_t {
-    void *fp;               /**< File pointer for the MAT file */
-    char *header;           /**< MAT File header string */
-    char *subsys_offset;    /**< offset */
-    char *filename;         /**< Filename of the MAT file */
-    int   version;          /**< MAT File version */
-    int   byteswap;         /**< 1 if byte swapping is required, 0 otherwise */
-    int   mode;             /**< Access mode */
-    long  bof;              /**< Beginning of file not including any header */
-    long  next_index;       /**< Index/File position of next variable to read */
-    long  num_datasets;     /**< Number of datasets in the file */
-} mat_t;
+typedef struct _mat_t mat_t;
 
 /* Incomplete definition for private library data */
 struct matvar_internal;
@@ -224,7 +213,7 @@ typedef struct matvar_t {
     int   rank;         /**< Rank (Number of dimensions) of the data */
     int   data_type;    /**< Data type(MAT_T_*) */
     int   data_size;    /**< Bytes / element for the data */
-    int   class_type;   /**< Class type in Matlab(mxDOUBLE_CLASS, etc) */
+    int   class_type;   /**< Class type in Matlab(MAT_C_DOUBLE, etc) */
     int   isComplex;    /**< non-zero if the data is complex, 0 if real */
     int   isGlobal;     /**< non-zero if the variable is global */
     int   isLogical;    /**< non-zero if the variable is logical */
@@ -233,12 +222,6 @@ typedef struct matvar_t {
     void *data;         /**< Pointer to the data */
     int   mem_conserve; /**< 1 if Memory was conserved with data */
     int   compression;  /**< Compression (0=>None,1=>ZLIB) */
-    long  fpos;         /**< Offset from the beginning of the MAT file to the variable */
-    long  datapos;      /**< Offset from the beginning of the MAT file to the data */
-    mat_t    *fp;       /**< Pointer to the MAT file structure (mat_t) */
-#if defined(HAVE_ZLIB)
-    z_stream *z;        /**< zlib compression state */
-#endif
     struct matvar_internal *internal; /**< matio internal data */
 } matvar_t;
 

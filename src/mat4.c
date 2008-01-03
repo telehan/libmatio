@@ -59,7 +59,7 @@ void
 Read4(mat_t *mat,matvar_t *matvar)
 {
     unsigned int N;
-    if ( fseek(mat->fp,matvar->datapos,SEEK_SET) )
+    if ( fseek(mat->fp,matvar->internal->datapos,SEEK_SET) )
         return;
 
     N = matvar->dims[0]*matvar->dims[1];
@@ -176,7 +176,7 @@ ReadData4(mat_t *mat,matvar_t *matvar,void *data,
 {
     int err = 0, class_type;
 
-    fseek(mat->fp,matvar->datapos,SEEK_SET);
+    fseek(mat->fp,matvar->internal->datapos,SEEK_SET);
 
     switch( matvar->data_type ) {
         case MAT_T_DOUBLE:
@@ -208,7 +208,7 @@ ReadData4(mat_t *mat,matvar_t *matvar,void *data,
                 matvar->dims,start,stride,edge);
         if ( matvar->isComplex ) {
             long nbytes = edge[0]*edge[1]*Mat_SizeOf(matvar->data_type);
-            fseek(mat->fp,matvar->datapos+nbytes,SEEK_SET);
+            fseek(mat->fp,matvar->internal->datapos+nbytes,SEEK_SET);
             ReadDataSlab2(mat,(unsigned char *)data+nbytes,class_type,
                 matvar->data_type,matvar->dims,start,stride,edge);
         }
@@ -220,7 +220,7 @@ ReadData4(mat_t *mat,matvar_t *matvar,void *data,
             long nbytes = Mat_SizeOf(matvar->data_type);
             for ( i = 0; i < matvar->rank; i++ )
                 nbytes *= edge[i];
-            fseek(mat->fp,matvar->datapos+nbytes,SEEK_SET);
+            fseek(mat->fp,matvar->internal->datapos+nbytes,SEEK_SET);
             ReadDataSlab2(mat,(unsigned char *)data+nbytes,class_type,
                 matvar->data_type,matvar->dims,start,stride,edge);
         }
@@ -247,18 +247,11 @@ Mat_VarReadNextInfo4(mat_t *mat)
 
     if ( mat == NULL || mat->fp == NULL )
         return NULL;
-    else if ( NULL == (matvar = calloc(1,sizeof(*matvar))) )
+    else if ( NULL == (matvar = Mat_VarCalloc()) )
         return NULL;
 
-    matvar->dims = NULL;
-    matvar->data = NULL;
-    matvar->name = NULL;
-    matvar->fp   = mat;
-#if defined(HAVE_ZLIB)
-    matvar->z    = NULL;
-#endif
-
-    matvar->fpos = ftell(mat->fp);
+    matvar->internal->fp   = mat;
+    matvar->internal->fpos = ftell(mat->fp);
 
     err = fread(&tmp,sizeof(int),1,mat->fp);
     if ( !err ) {
@@ -338,7 +331,7 @@ Mat_VarReadNextInfo4(mat_t *mat)
         return NULL;
     }
 
-    matvar->datapos = ftell(mat->fp);
+    matvar->internal->datapos = ftell(mat->fp);
     nBytes = matvar->dims[0]*matvar->dims[1]*Mat_SizeOf(matvar->data_type);
     if ( matvar->isComplex )
         nBytes *= 2;
