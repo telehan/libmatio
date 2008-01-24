@@ -261,7 +261,7 @@ EXTERN int    Mat_Message( const char *format, ... );
 EXTERN int    Mat_DebugMessage( int level, const char *format, ... );
 EXTERN int    Mat_VerbMessage( int level, const char *format, ... );
 EXTERN void   Mat_Warning( const char *format, ... );
-EXTERN size_t Mat_SizeOf(int data_type);
+EXTERN size_t Mat_SizeOf(enum matio_types data_type);
 EXTERN size_t Mat_SizeOfClass(int class_type);
 
 /*   MAT File functions   */
