@@ -53,10 +53,6 @@ static const char *data_type_desc[23] = {"Unknown","8-bit, signed integer",
  * -------------------------------------------------------------
  */
 
-static size_t GetMatrixMaxBufSize(matvar_t *matvar);
-static size_t GetStructFieldBufSize(matvar_t *matvar);
-static size_t GetCellArrayFieldBufSize(matvar_t *matvar);
-
 /** @brief determines the number of bytes needed to store the given struct field
  *
  * @ingroup mat_internal
