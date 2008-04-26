@@ -56,39 +56,10 @@ AC_PROG_CC([pgcc icc gcc cc])
 
 gl_EARLY()
 
-case $CC in
-    *pgcc*)
-        . $srcdir/config/pgi-cflags
-        ;;
-    *icc*)
-        . $srcdir/config/intel-cflags
-        ;;
-    *gcc*)
-        . $srcdir/config/gnu-cflags
-        ;;
-    *cl | *cl.exe)
-        . $srcdir/config/ms-cflags
-        ;;
-esac
-
 if test "$enable_fortran" = "yes"
 then
     AC_PROG_FC([pgf95 pgf90 ifort gfortran g95])
-
-    case $FC in
-        *pgf9*)
-            . $srcdir/config/pgi-fflags
-            ;;
-        *ifort*)
-            . $srcdir/config/intel-fflags
-            ;;
-        *gfortran* | *g95*)
-            . $srcdir/config/gnu-fflags
-            ;;
-    esac
-
     AC_FC_WRAPPERS
-
     AC_CONFIG_FILES([src/fortran/matio_t.inc])
 fi
 

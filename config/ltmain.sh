@@ -1,9 +1,9 @@
 # Generated from ltmain.m4sh.
 
-# ltmain.sh (GNU libtool 1.2533 2007/11/30 04:18:40) 2.1a
+# ltmain.sh (GNU libtool) 2.2.2
 # Written by Gordon Matzigkeit <gord@gnu.ai.mit.edu>, 1996
 
-# Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+# Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007 2008 Free Software Foundation, Inc.
 # This is free software; see the source for copying conditions.  There is NO
 # warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
@@ -65,7 +65,7 @@
 #       compiler:		$LTCC
 #       compiler flags:		$LTCFLAGS
 #       linker:		$LD (gnu? $with_gnu_ld)
-#       $progname:		(GNU libtool 1.2533 2007/11/30 04:18:40) 2.1a
+#       $progname:		(GNU libtool) 2.2.2
 #       automake:		$automake_version
 #       autoconf:		$autoconf_version
 #
@@ -73,9 +73,9 @@
 
 PROGRAM=ltmain.sh
 PACKAGE=libtool
-VERSION=2.1a
-TIMESTAMP=" 1.2533 2007/11/30 04:18:40"
-package_revision=1.2533
+VERSION=2.2.2
+TIMESTAMP=""
+package_revision=1.2627
 
 # Be Bourne compatible
 if test -n "${ZSH_VERSION+set}" && (emulate sh) >/dev/null 2>&1; then
@@ -95,12 +95,16 @@ DUALCASE=1; export DUALCASE # for MKS sh
 # Only set LANG and LC_ALL to C if already set.
 # These must not be set unconditionally because not all systems understand
 # e.g. LANG=C (notably SCO).
+lt_user_locale=
+lt_safe_locale=
 for lt_var in LANG LANGUAGE LC_ALL LC_CTYPE LC_COLLATE LC_MESSAGES
 do
   eval "if test \"\${$lt_var+set}\" = set; then
           save_$lt_var=\$$lt_var
           $lt_var=C
 	  export $lt_var
+	  lt_user_locale=\"$lt_var=\\\$save_\$lt_var; \$lt_user_locale\"
+	  lt_safe_locale=\"$lt_var=C; \$lt_safe_locale\"
 	fi"
 done
 
@@ -418,6 +422,32 @@ func_show_eval ()
     if ${opt_dry_run-false}; then :; else
       eval "$my_cmd"
       my_status=$?
+      if test "$my_status" -eq 0; then :; else
+	eval "(exit $my_status); $my_fail_exp"
+      fi
+    fi
+}
+
+
+# func_show_eval_locale cmd [fail_exp]
+# Unless opt_silent is true, then output CMD.  Then, if opt_dryrun is
+# not true, evaluate CMD.  If the evaluation of CMD fails, and FAIL_EXP
+# is given, then evaluate it.  Use the saved locale for evaluation.
+func_show_eval_locale ()
+{
+    my_cmd="$1"
+    my_fail_exp="${2-:}"
+
+    ${opt_silent-false} || {
+      func_quote_for_expand "$my_cmd"
+      eval "func_echo $func_quote_for_expand_result"
+    }
+
+    if ${opt_dry_run-false}; then :; else
+      eval "$lt_user_locale
+	    $my_cmd"
+      my_status=$?
+      eval "$lt_safe_locale"
       if test "$my_status" -eq 0; then :; else
 	eval "(exit $my_status); $my_fail_exp"
       fi
@@ -1030,7 +1060,7 @@ func_lalib_p ()
 func_lalib_unsafe_p ()
 {
     lalib_p=no
-    if test -r "$1" && exec 5<&1 <"$1"; then
+    if test -r "$1" && exec 5<&0 <"$1"; then
 	for lalib_p_l in 1 2 3 4
 	do
 	    read lalib_p_line
@@ -1038,7 +1068,7 @@ func_lalib_unsafe_p ()
 		\#\ Generated\ by\ *$PACKAGE* ) lalib_p=yes; break;;
 	    esac
 	done
-	exec 1<&5 5<&-
+	exec 0<&5 5<&-
     fi
     test "$lalib_p" = yes
 }
@@ -1261,7 +1291,7 @@ func_generate_dlsyms ()
 	func_show_eval "$RM $nlist ${nlist}S ${nlist}T"
 
 	# Parse the name list into a source file.
-	func_echo "creating $output_objdir/$my_dlsyms"
+	func_verbose "creating $output_objdir/$my_dlsyms"
 
 	$opt_dry_run || $ECHO > "$output_objdir/$my_dlsyms" "\
 /* $my_dlsyms - symbol resolution table for \`$my_outputname' dlsym emulation. */
@@ -1275,14 +1305,14 @@ extern \"C\" {
 "
 
 	if test "$dlself" = yes; then
-	  func_echo "generating symbol list for \`$output'"
+	  func_verbose "generating symbol list for \`$output'"
 
 	  $opt_dry_run || echo ': @PROGRAM@ ' > "$nlist"
 
 	  # Add our own program objects to the symbol list.
 	  progfiles=`$ECHO "X$objs$old_deplibs" | $SP2NL | $Xsed -e "$lo2o" | $NL2SP`
 	  for progfile in $progfiles; do
-	    func_echo "extracting global C symbols from \`$progfile'"
+	    func_verbose "extracting global C symbols from \`$progfile'"
 	    $opt_dry_run || eval "$NM $progfile | $global_symbol_pipe >> '$nlist'"
 	  done
 
@@ -1329,7 +1359,7 @@ extern \"C\" {
 	fi
 
 	for dlprefile in $dlprefiles; do
-	  func_echo "extracting global C symbols from \`$dlprefile'"
+	  func_verbose "extracting global C symbols from \`$dlprefile'"
 	  func_basename "$dlprefile"
 	  name="$func_basename_result"
 	  $opt_dry_run || {
@@ -1541,7 +1571,7 @@ func_extract_archives ()
 
       case $host in
       *-darwin*)
-	func_echo "Extracting $my_xabs"
+	func_verbose "Extracting $my_xabs"
 	# Do not bother doing anything if just a dry run
 	$opt_dry_run || {
 	  darwin_orig_dir=`pwd`
@@ -1553,7 +1583,7 @@ func_extract_archives ()
 	  if test -n "$darwin_arches"; then
 	    darwin_arches=`$ECHO "$darwin_arches" | $SED -e 's/.*are://'`
 	    darwin_arch=
-	    func_echo "$darwin_base_archive has multiple architectures $darwin_arches"
+	    func_verbose "$darwin_base_archive has multiple architectures $darwin_arches"
 	    for darwin_arch in  $darwin_arches ; do
 	      func_mkdir_p "unfat-$$/${darwin_base_archive}-${darwin_arch}"
 	      lipo -thin $darwin_arch -output "unfat-$$/${darwin_base_archive}-${darwin_arch}/${darwin_base_archive}" "${darwin_archive}"
@@ -1897,7 +1927,7 @@ compiler."
 
       $opt_dry_run || $RM "$lobj" "$output_obj"
 
-      func_show_eval "$command"	\
+      func_show_eval_locale "$command"	\
           'test -n "$output_obj" && $RM $removelist; exit $EXIT_FAILURE'
 
       if test "$need_locks" = warn &&
@@ -1947,7 +1977,7 @@ compiler."
       # Suppress compiler output if we already did a PIC compilation.
       command="$command$suppress_output"
       $opt_dry_run || $RM "$obj" "$output_obj"
-      func_show_eval "$command" \
+      func_show_eval_locale "$command" \
         '$opt_dry_run || $RM $removelist; exit $EXIT_FAILURE'
 
       if test "$need_locks" = warn &&
@@ -2076,12 +2106,14 @@ func_mode_execute ()
 	# Do a test to see if this is really a libtool program.
 	if func_ltwrapper_script_p "$file"; then
 	  func_source "$file"
+	  # Transform arg to wrapped name.
+	  file="$progdir/$program"
 	elif func_ltwrapper_executable_p "$file"; then
 	  func_ltwrapper_scriptname "$file"
 	  func_source "$func_ltwrapper_scriptname_result"
+	  # Transform arg to wrapped name.
+	  file="$progdir/$program"
 	fi
-	# Transform arg to wrapped name.
-	file="$progdir/$program"
 	;;
       esac
       # Quote arguments (to preserve shell metacharacters).
@@ -2850,7 +2882,7 @@ else
 	  ;;
 	esac
 	$ECHO "\
-      \$ECHO \"\$0: cannot exec \$program \$*\"
+      \$ECHO \"\$0: cannot exec \$program \$*\" 1>&2
       exit 1
     fi
   else
@@ -2894,6 +2926,7 @@ EOF
     (defined(__PGI) && (defined(_WIN32) || defined(_WIN64)))
 # include <direct.h>
 # include <process.h>
+# include <io.h>
 #else
 # include <unistd.h>
 # include <stdint.h>
@@ -2904,6 +2937,7 @@ EOF
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 
 #if defined(PATH_MAX)
@@ -2938,6 +2972,7 @@ EOF
 #if defined (_WIN32) || defined (__MSDOS__) || defined (__DJGPP__) || \
   defined (__OS2__)
 # define HAVE_DOS_BASED_FILE_SYSTEM
+# define FOPEN_WB "wb"
 # ifndef DIR_SEPARATOR_2
 #  define DIR_SEPARATOR_2 '\\'
 # endif
@@ -2958,6 +2993,17 @@ EOF
 #else /* PATH_SEPARATOR_2 */
 # define IS_PATH_SEPARATOR(ch) ((ch) == PATH_SEPARATOR_2)
 #endif /* PATH_SEPARATOR_2 */
+
+#ifdef __CYGWIN__
+# define FOPEN_WB "wb"
+#endif
+
+#ifndef FOPEN_WB
+# define FOPEN_WB "w"
+#endif
+#ifndef _O_BINARY
+# define _O_BINARY 0
+#endif
 
 #define XMALLOC(type, num)      ((type *) xmalloc ((num) * sizeof(type)))
 #define XFREE(stale) do { \
@@ -3024,6 +3070,15 @@ main (int argc, char *argv[])
     {
       if (strcmp (argv[i], dumpscript_opt) == 0)
 	{
+EOF
+	    case "$host" in
+	      *mingw* | *cygwin* )
+		# make stdout use "unix" line endings
+		echo "          _setmode(1,_O_BINARY);"
+		;;
+	      esac
+
+	    cat <<EOF
 	  printf ("%s", script_text);
 	  return 0;
 	}
@@ -3111,10 +3166,8 @@ EOF
   XFREE (shwrapper_name);
   XFREE (actual_cwrapper_path);
 
-  /* note: do NOT use "wt" here! -- defer to underlying
-   * mount type on cygwin
-   */
-  if ((shwrapper = fopen (newargz[1], "w")) == 0)
+  /* always write in binary mode */
+  if ((shwrapper = fopen (newargz[1], FOPEN_WB)) == 0)
     {
       lt_fatal ("Could not open %s for writing", newargz[1]);
     }
@@ -4487,7 +4540,12 @@ func_mode_link ()
 	  fi
 	  func_stripname '-l' '' "$deplib"
 	  name=$func_stripname_result
-	  for searchdir in $newlib_search_path $lib_search_path $sys_lib_search_path $shlib_search_path; do
+	  if test "$linkmode" = lib; then
+	    searchdirs="$newlib_search_path $lib_search_path $compiler_lib_search_dirs $sys_lib_search_path $shlib_search_path"
+	  else
+	    searchdirs="$newlib_search_path $lib_search_path $sys_lib_search_path $shlib_search_path"
+	  fi
+	  for searchdir in $searchdirs; do
 	    for search_ext in .la $std_shrext .so .a; do
 	      # Search the libtool library
 	      lib="$searchdir/lib${name}${search_ext}"
@@ -5039,13 +5097,13 @@ func_mode_link ()
 	    # If the library has no export list, then create one now
 	    if test -f "$output_objdir/$soname-def"; then :
 	    else
-	      func_echo "extracting exported symbol list from \`$soname'"
+	      func_verbose "extracting exported symbol list from \`$soname'"
 	      func_execute_cmds "$extract_expsyms_cmds" 'exit $?'
 	    fi
 
 	    # Create $newlib
 	    if test -f "$output_objdir/$newlib"; then :; else
-	      func_echo "generating import library for \`$soname'"
+	      func_verbose "generating import library for \`$soname'"
 	      func_execute_cmds "$old_archive_from_expsyms_cmds" 'exit $?'
 	    fi
 	    # make sure the library variables are pointing to the new library
@@ -5464,9 +5522,10 @@ func_mode_link ()
 	func_warning "\`-dlopen' is ignored for archives"
       fi
 
-      test -n "$deplibs" && \
-	func_warning "\`-l' and \`-L' are ignored for archives"
-
+      case " $deplibs" in
+      *\ -l* | *\ -L*)
+	func_warning "\`-l' and \`-L' are ignored for archives" ;;
+      esac
 
       test -n "$rpath" && \
 	func_warning "\`-rpath' is ignored for archives"
@@ -6365,7 +6424,7 @@ EOF
 	# Prepare the list of exported symbols
 	if test -z "$export_symbols"; then
 	  if test "$always_export_symbols" = yes || test -n "$export_symbols_regex"; then
-	    func_echo "generating symbol list for \`$libname.la'"
+	    func_verbose "generating symbol list for \`$libname.la'"
 	    export_symbols="$output_objdir/$libname.exp"
 	    $opt_dry_run || $RM $export_symbols
 	    cmds=$export_symbols_cmds
@@ -6379,7 +6438,7 @@ EOF
 		skipped_export=false
 	      else
 		# The command line is too long to execute in one step.
-		func_echo "using reloadable object file for export list..."
+		func_verbose "using reloadable object file for export list..."
 		skipped_export=:
 		# Break out early, otherwise skipped_export may be
 		# set to false by a later but shorter cmd.
@@ -6402,7 +6461,7 @@ EOF
 
 	if test "X$skipped_export" != "X:" && test -n "$orig_export_symbols"; then
 	  # The given exports_symbols file has to be filtered, so filter it.
-	  func_echo "filter symbol list for \`$libname.la' to tag DATA exports"
+	  func_verbose "filter symbol list for \`$libname.la' to tag DATA exports"
 	  # FIXME: $output_objdir/$libname.filter potentially contains lots of
 	  # 's' commands which not all seds can handle. GNU sed should be fine
 	  # though. Also, the filter scales superlinearly with the number of
@@ -6509,7 +6568,7 @@ EOF
 
 	  if test -n "$save_libobjs" && test "X$skipped_export" != "X:" && test "$with_gnu_ld" = yes; then
 	    output=${output_objdir}/${output_la}.lnkscript
-	    func_echo "creating GNU ld script: $output"
+	    func_verbose "creating GNU ld script: $output"
 	    $ECHO 'INPUT (' > $output
 	    for obj in $save_libobjs
 	    do
@@ -6519,7 +6578,7 @@ EOF
 	    delfiles="$delfiles $output"
 	  elif test -n "$save_libobjs" && test "X$skipped_export" != "X:" && test "X$file_list_spec" != X; then
 	    output=${output_objdir}/${output_la}.lnk
-	    func_echo "creating linker input file list: $output"
+	    func_verbose "creating linker input file list: $output"
 	    : > $output
 	    set x $save_libobjs
 	    shift
@@ -6536,7 +6595,7 @@ EOF
 	    output=$firstobj\"$file_list_spec$output\"
 	  else
 	    if test -n "$save_libobjs"; then
-	      func_echo "creating reloadable object files..."
+	      func_verbose "creating reloadable object files..."
 	      output=$output_objdir/$output_la-${k}.$objext
 	      # Loop over the list of objects to be linked.
 	      for obj in $save_libobjs
@@ -6568,7 +6627,10 @@ EOF
 	      # reloadable object file.  All subsequent reloadable object
 	      # files will link in the last one created.
 	      test -z "$concat_cmds" || concat_cmds=$concat_cmds~
-	      eval concat_cmds=\"\${concat_cmds}$reload_cmds $objlist $last_robj~\$RM $last_robj\"
+	      eval concat_cmds=\"\${concat_cmds}$reload_cmds $objlist $last_robj\"
+	      if test -n "$last_robj"; then
+	        eval concat_cmds=\"\${concat_cmds}~\$RM $last_robj\"
+	      fi
 	      delfiles="$delfiles $output"
 
 	    else
@@ -6576,20 +6638,20 @@ EOF
 	    fi
 
 	    if ${skipped_export-false}; then
-	      func_echo "generating symbol list for \`$libname.la'"
+	      func_verbose "generating symbol list for \`$libname.la'"
 	      export_symbols="$output_objdir/$libname.exp"
 	      $opt_dry_run || $RM $export_symbols
 	      libobjs=$output
 	      # Append the command to create the export file.
 	      test -z "$concat_cmds" || concat_cmds=$concat_cmds~
 	      eval concat_cmds=\"\$concat_cmds$export_symbols_cmds\"
-	      if test -n "$output"; then
+	      if test -n "$last_robj"; then
 		eval concat_cmds=\"\$concat_cmds~\$RM $last_robj\"
 	      fi
 	    fi
 
 	    test -n "$save_libobjs" &&
-	      func_echo "creating a temporary reloadable object file: $output"
+	      func_verbose "creating a temporary reloadable object file: $output"
 
 	    # Loop through the commands generated above and execute them.
 	    save_ifs="$IFS"; IFS='~'
@@ -6629,7 +6691,7 @@ EOF
 
 	    if test -n "$orig_export_symbols"; then
 	      # The given exports_symbols file has to be filtered, so filter it.
-	      func_echo "filter symbol list for \`$libname.la' to tag DATA exports"
+	      func_verbose "filter symbol list for \`$libname.la' to tag DATA exports"
 	      # FIXME: $output_objdir/$libname.filter potentially contains lots of
 	      # 's' commands which not all seds can handle. GNU sed should be fine
 	      # though. Also, the filter scales superlinearly with the number of
@@ -6740,8 +6802,10 @@ EOF
 	func_warning "\`-dlopen' is ignored for objects"
       fi
 
-      test -n "$deplibs" && \
-	func_warning "\`-l' and \`-L' are ignored for objects"
+      case " $deplibs" in
+      *\ -l* | *\ -L*)
+	func_warning "\`-l' and \`-L' are ignored for objects" ;;
+      esac
 
       test -n "$rpath" && \
 	func_warning "\`-rpath' is ignored for objects"
@@ -7124,7 +7188,7 @@ EOF
       func_show_eval "$link_command" 'exit $?'
 
       # Now create the wrapper script.
-      func_echo "creating $output"
+      func_verbose "creating $output"
 
       # Quote the relink command for shipping.
       if test -n "$relink_command"; then
@@ -7197,7 +7261,12 @@ EOF
 	    $RM $func_ltwrapper_scriptname_result
 	    trap "$RM $func_ltwrapper_scriptname_result; exit $EXIT_FAILURE" 1 2 15
 	    $opt_dry_run || {
-	      $cwrapper --lt-dump-script > $func_ltwrapper_scriptname_result
+	      # note: this script will not be executed, so do not chmod.
+	      if test "x$build" = "x$host" ; then
+		$cwrapper --lt-dump-script > $func_ltwrapper_scriptname_result
+	      else
+		func_emit_wrapper no > $func_ltwrapper_scriptname_result
+	      fi
 	    }
 	  ;;
 	  * )
@@ -7306,7 +7375,7 @@ EOF
 	  cmds=$old_archive_cmds
 	else
 	  # the command line is too long to link in one step, link in parts
-	  func_echo "using piecewise archive linking..."
+	  func_verbose "using piecewise archive linking..."
 	  save_RANLIB=$RANLIB
 	  RANLIB=:
 	  objlist=
@@ -7317,6 +7386,14 @@ EOF
 	  do
 	    last_oldobj=$obj
 	  done
+	  # If we are using the MS linker, we have to pass the lib file
+	  # at each increment to append objects instead of overwriting the
+	  # lib file
+	  if test "x$with_msvc_ld" = "xyes";then
+	    oldobjs=" $last_oldobj"
+	    func_show_eval "$old_archive_cmds"
+	    objlist=" $oldlib"
+	  fi
 	  for obj in $save_oldobjs
 	  do
 	    oldobjs="$objlist $obj"
@@ -7333,7 +7410,11 @@ EOF
 	      fi
 	      test -z "$concat_cmds" || concat_cmds=$concat_cmds~
 	      eval concat_cmds=\"\${concat_cmds}$old_archive_cmds\"
-	      objlist=
+	      if test "x$with_msvc_ld" = "xyes";then
+	        objlist=" $oldlib"
+	      else
+	        objlist=
+	      fi
 	    fi
 	  done
 	  RANLIB=$save_RANLIB
@@ -7356,7 +7437,7 @@ EOF
     *.la)
       old_library=
       test "$build_old_libs" = yes && old_library="$libname.$libext"
-      func_echo "creating $output"
+      func_verbose "creating $output"
 
       # Preserve any variables that may affect compiler behavior
       for var in $variables_saved_for_relink; do
