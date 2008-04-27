@@ -6,6 +6,7 @@
 #   include <hdf5.h>
 #else
 #   define hobj_ref_t int
+#   define hid_t int
 #endif
 
 #ifndef EXTERN
