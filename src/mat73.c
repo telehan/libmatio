@@ -99,6 +99,55 @@ Mat_class_str_to_id(const char *name)
     return id;
 }
 
+static enum matio_types
+Mat_ClassToType73(enum matio_classes class_type)
+{
+    enum matio_types type;
+    switch ( class_type ) {
+        case MAT_C_DOUBLE:
+            type = MAT_T_DOUBLE;
+            break;
+        case MAT_C_SINGLE:
+            type = MAT_T_SINGLE;
+            break;
+        case MAT_C_INT64:
+            type = MAT_T_INT64;
+            break;
+        case MAT_C_UINT64:
+            type = MAT_T_UINT64;
+            break;
+        case MAT_C_INT32:
+            type = MAT_T_INT32;
+            break;
+        case MAT_C_UINT32:
+            type = MAT_T_UINT32;
+            break;
+        case MAT_C_INT16:
+            type = MAT_T_INT16;
+            break;
+        case MAT_C_UINT16:
+            type = MAT_T_UINT16;
+            break;
+        case MAT_C_INT8:
+            type = MAT_T_INT8;
+            break;
+        case MAT_C_UINT8:
+            type = MAT_T_UINT8;
+            break;
+        case MAT_C_CELL:
+            type = MAT_T_CELL;
+            break;
+        case MAT_C_STRUCT:
+            type = MAT_T_STRUCT;
+            break;
+        default:
+            type = MAT_T_UNKNOWN;
+            break;
+    }
+
+    return type;
+}
+
 static hid_t
 Mat_class_type_to_hid_t(enum matio_classes class_type)
 {
@@ -342,6 +391,7 @@ Mat_H5ReadDatasetInfo(mat_t *mat,matvar_t *matvar,hid_t dset_id)
             H5Aread(attr_id,class_id,class_str);
             H5Tclose(class_id);
             matvar->class_type = Mat_class_str_to_id(class_str);
+            matvar->data_type  = Mat_ClassToType73(matvar->class_type);
             free(class_str);
         }
     }
@@ -417,6 +467,7 @@ Mat_H5ReadGroupInfo(mat_t *mat,matvar_t *matvar,hid_t dset_id)
             H5Aread(attr_id,class_id,class_str);
             H5Tclose(class_id);
             matvar->class_type = Mat_class_str_to_id(class_str);
+            matvar->data_type  = Mat_ClassToType73(matvar->class_type);
             free(class_str);
         }
     }
@@ -460,7 +511,7 @@ Mat_H5ReadGroupInfo(mat_t *mat,matvar_t *matvar,hid_t dset_id)
         H5Aclose(attr_id);
         free(fieldnames_vl);
     } else {
-        int next_index = 0,num_objs  = 0;
+        hsize_t next_index = 0,num_objs  = 0;
         H5Gget_num_objs(dset_id,&num_objs);
         fieldnames = calloc(num_objs,sizeof(*fieldnames));
         /* FIXME: follow symlinks, datatypes? */
@@ -636,6 +687,7 @@ Mat_H5ReadNextReferenceInfo(hid_t ref_id,matvar_t *matvar,mat_t *mat)
                     H5Aread(attr_id,class_id,class_str);
                     H5Tclose(class_id);
                     matvar->class_type = Mat_class_str_to_id(class_str);
+                    matvar->data_type  = Mat_ClassToType73(matvar->class_type);
                     free(class_str);
                 }
             }
@@ -662,6 +714,41 @@ Mat_H5ReadNextReferenceInfo(hid_t ref_id,matvar_t *matvar,mat_t *mat)
                 matvar->isComplex = MAT_F_COMPLEX;
             }
             H5Tclose(type_id);
+
+            /* If the dataset is a cell array read theinfo of the cells */
+            if ( MAT_C_CELL == matvar->class_type ) {
+                matvar_t **cells;
+                int i,ncells = 1;
+                hid_t field_id,ref_id,field_type_id;
+                hobj_ref_t *ref_ids;
+
+                for ( i = 0; i < matvar->rank; i++ )
+                    ncells *= matvar->dims[i];
+                matvar->data_size = sizeof(matvar_t**);
+                matvar->nbytes    = ncells*matvar->data_size;
+                matvar->data      = malloc(matvar->nbytes);
+                cells  = matvar->data;
+
+                ref_ids = malloc(ncells*sizeof(*ref_ids));
+                H5Dread(dset_id,H5T_STD_REF_OBJ,H5S_ALL,H5S_ALL,H5P_DEFAULT,
+                        ref_ids);
+                for ( i = 0; i < ncells; i++ ) {
+                    hid_t ref_id;
+                    cells[i] = Mat_VarCalloc();
+                    cells[i]->internal->hdf5_ref = ref_ids[i];
+                    /* Closing of ref_id is done in Mat_H5ReadNextReferenceInfo */
+                    ref_id = H5Rdereference(dset_id,H5R_OBJECT,ref_ids+i);
+                    cells[i]->internal->id=ref_id;
+                    cells[i]->internal->fp=matvar->internal->fp;
+                    Mat_H5ReadNextReferenceInfo(ref_id,cells[i],mat);
+                }
+                free(ref_ids);
+            }
+
+            if ( matvar->internal->id != dset_id ) {
+                /* Close dataset and increment count */
+                H5Dclose(dset_id);
+            }
 
             H5Eset_auto(efunc,client_data);
             /*H5Dclose(dset_id);*/
@@ -710,6 +797,20 @@ Mat_H5ReadNextReferenceData(hid_t ref_id,matvar_t *matvar,mat_t *mat)
 
     if( ref_id < 0 || matvar == NULL)
         return;
+
+    /* If the datatype with references is a cell, we've already read info into
+     * the variable data, so just loop over each cell element and call
+     * Mat_H5ReadNextReferenceData on it.
+     */
+    if ( MAT_C_CELL == matvar->class_type ) {
+        matvar_t **cells = matvar->data;
+        numel = 1;
+        for ( k = 0; k < matvar->rank; k++ )
+            numel *= matvar->dims[k];
+        for ( k = 0; k < numel; k++ )
+            Mat_H5ReadNextReferenceData(cells[k]->internal->id,cells[k],mat);
+        return;
+    }
 
     switch ( H5Iget_type(ref_id) ) {
         case H5I_DATASET:
@@ -1783,6 +1884,28 @@ Mat_VarRead73(mat_t *mat,matvar_t *matvar)
             }
             break;
         }
+        case MAT_C_CELL:
+        {
+            matvar_t **cells;
+            int i,ncells = 0;
+            hid_t field_id,ref_id,field_type_id;
+            hobj_ref_t *ref_ids;
+
+            if ( NULL != matvar->internal->hdf5_name ) {
+                dset_id = H5Dopen(fid,matvar->internal->hdf5_name);
+            } else {
+                dset_id = matvar->internal->id;
+                H5Iinc_ref(dset_id);
+            }
+
+            ncells = matvar->nbytes / matvar->data_size;
+            cells  = matvar->data;
+
+            for ( i = 0; i < ncells; i++ )
+                Mat_H5ReadNextReferenceData(cells[i]->internal->id,cells[i],mat);
+            free(ref_ids);
+            break;
+        }
     }
 }
 
@@ -1880,6 +2003,7 @@ Mat_VarReadNextInfo73( mat_t *mat )
                     H5Aread(attr_id,class_id,class_str);
                     H5Tclose(class_id);
                     matvar->class_type = Mat_class_str_to_id(class_str);
+                    matvar->data_type  = Mat_ClassToType73(matvar->class_type);
                     free(class_str);
                 }
             }
@@ -1908,6 +2032,36 @@ Mat_VarReadNextInfo73( mat_t *mat )
                 matvar->isComplex = MAT_F_COMPLEX;
             }
             H5Tclose(type_id);
+
+            /* If the dataset is a cell array read theinfo of the cells */
+            if ( MAT_C_CELL == matvar->class_type ) {
+                matvar_t **cells;
+                int i,ncells = 1;
+                hid_t field_id,ref_id,field_type_id;
+                hobj_ref_t *ref_ids;
+
+                for ( i = 0; i < matvar->rank; i++ )
+                    ncells *= matvar->dims[i];
+                matvar->data_size = sizeof(matvar_t**);
+                matvar->nbytes    = ncells*matvar->data_size;
+                matvar->data      = malloc(matvar->nbytes);
+                cells  = matvar->data;
+
+                ref_ids = malloc(ncells*sizeof(*ref_ids));
+                H5Dread(dset_id,H5T_STD_REF_OBJ,H5S_ALL,H5S_ALL,H5P_DEFAULT,
+                        ref_ids);
+                for ( i = 0; i < ncells; i++ ) {
+                    hid_t ref_id;
+                    cells[i] = Mat_VarCalloc();
+                    cells[i]->internal->hdf5_ref = ref_ids[i];
+                    /* Closing of ref_id is done in Mat_H5ReadNextReferenceInfo */
+                    ref_id = H5Rdereference(dset_id,H5R_OBJECT,ref_ids+i);
+                    cells[i]->internal->id=ref_id;
+                    cells[i]->internal->fp=matvar->internal->fp;
+                    Mat_H5ReadNextReferenceInfo(ref_id,cells[i],mat);
+                }
+                free(ref_ids);
+            }
 
             if ( matvar->internal->id != dset_id ) {
                 /* Close dataset and increment count */
