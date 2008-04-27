@@ -519,7 +519,7 @@ test_write( void )
     s.Re = f;
     s.Im = f+25;
 
-    mat = Mat_Open("test_mat_write.mat",MAT_ACC_RDWR | mat_file_ver);
+    mat = Mat_Create("test_mat_write.mat",NULL,mat_file_ver);
     if ( mat ) {
         matvar = Mat_VarCreate("d",MAT_C_DOUBLE,MAT_T_DOUBLE,2,dims,d,0);
         Mat_VarWrite( mat, matvar, 0);
