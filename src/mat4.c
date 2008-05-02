@@ -67,10 +67,18 @@ Read4(mat_t *mat,matvar_t *matvar)
         case MAT_T_DOUBLE:
             matvar->data_size = sizeof(double);
             if ( matvar->isComplex ) {
-                matvar->nbytes = 2*N*sizeof(double);
-                matvar->data = malloc(matvar->nbytes);
-                if ( matvar->data != NULL )
-                    fread(matvar->data,2*N,sizeof(double),mat->fp);
+                struct ComplexSplit *complex_data;
+
+                matvar->nbytes   = N*sizeof(double);
+                complex_data     = malloc(sizeof(*complex_data));
+                complex_data->Re = malloc(matvar->nbytes);
+                complex_data->Im = malloc(matvar->nbytes);
+                matvar->data     = complex_data;
+                if ( complex_data != NULL &&
+                     complex_data->Re != NULL && complex_data->Im != NULL ) {
+                    fread(complex_data->Re,N,sizeof(double),mat->fp);
+                    fread(complex_data->Im,N,sizeof(double),mat->fp);
+                }
             } else {
                 matvar->nbytes = N*sizeof(double);
                 matvar->data   = malloc(matvar->nbytes);
@@ -81,10 +89,18 @@ Read4(mat_t *mat,matvar_t *matvar)
         case MAT_T_SINGLE:
             matvar->data_size = sizeof(float);
             if ( matvar->isComplex ) {
-                matvar->nbytes = 2*N*sizeof(float);
-                matvar->data   = malloc(matvar->nbytes);
-                if ( matvar->data != NULL )
-                    fread(matvar->data,2*N,sizeof(float),mat->fp);
+                struct ComplexSplit *complex_data;
+
+                matvar->nbytes   = N*sizeof(float);
+                complex_data     = malloc(sizeof(*complex_data));
+                complex_data->Re = malloc(matvar->nbytes);
+                complex_data->Im = malloc(matvar->nbytes);
+                matvar->data     = complex_data;
+                if ( complex_data != NULL &&
+                     complex_data->Re != NULL && complex_data->Im != NULL ) {
+                    fread(complex_data->Re,N,sizeof(float),mat->fp);
+                    fread(complex_data->Im,N,sizeof(float),mat->fp);
+                }
             } else {
                 matvar->nbytes = N*sizeof(float);
                 matvar->data   = malloc(matvar->nbytes);
@@ -95,10 +111,18 @@ Read4(mat_t *mat,matvar_t *matvar)
         case MAT_T_INT32:
             matvar->data_size = sizeof(mat_int32_t);
             if ( matvar->isComplex ) {
-                matvar->nbytes = 2*N*sizeof(mat_int32_t);
-                matvar->data   = malloc(matvar->nbytes);
-                if ( matvar->data != NULL )
-                    fread(matvar->data,2*N,sizeof(mat_int32_t),mat->fp);
+                struct ComplexSplit *complex_data;
+
+                matvar->nbytes   = N*sizeof(mat_int32_t);
+                complex_data     = malloc(sizeof(*complex_data));
+                complex_data->Re = malloc(matvar->nbytes);
+                complex_data->Im = malloc(matvar->nbytes);
+                matvar->data     = complex_data;
+                if ( complex_data != NULL &&
+                     complex_data->Re != NULL && complex_data->Im != NULL ) {
+                    fread(complex_data->Re,N,sizeof(mat_int32_t),mat->fp);
+                    fread(complex_data->Im,N,sizeof(mat_int32_t),mat->fp);
+                }
             } else {
                 matvar->nbytes = N*sizeof(mat_int32_t);
                 matvar->data   = malloc(matvar->nbytes);
@@ -109,10 +133,18 @@ Read4(mat_t *mat,matvar_t *matvar)
         case MAT_T_INT16:
             matvar->data_size = sizeof(mat_int16_t);
             if ( matvar->isComplex ) {
-                matvar->nbytes = 2*N*sizeof(mat_int16_t);
-                matvar->data   = malloc(matvar->nbytes);
-                if ( matvar->data != NULL )
-                    fread(matvar->data,2*N,sizeof(mat_int16_t),mat->fp);
+                struct ComplexSplit *complex_data;
+
+                matvar->nbytes   = N*sizeof(mat_int16_t);
+                complex_data     = malloc(sizeof(*complex_data));
+                complex_data->Re = malloc(matvar->nbytes);
+                complex_data->Im = malloc(matvar->nbytes);
+                matvar->data     = complex_data;
+                if ( complex_data != NULL &&
+                     complex_data->Re != NULL && complex_data->Im != NULL ) {
+                    fread(complex_data->Re,N,sizeof(mat_int16_t),mat->fp);
+                    fread(complex_data->Im,N,sizeof(mat_int16_t),mat->fp);
+                }
             } else {
                 matvar->nbytes = N*sizeof(mat_int16_t);
                 matvar->data   = malloc(matvar->nbytes);
@@ -123,10 +155,18 @@ Read4(mat_t *mat,matvar_t *matvar)
         case MAT_T_UINT16:
             matvar->data_size = sizeof(mat_uint16_t);
             if ( matvar->isComplex ) {
-                matvar->nbytes = 2*N*sizeof(mat_uint16_t);
-                matvar->data   = malloc(matvar->nbytes);
-                if ( matvar->data != NULL )
-                    fread(matvar->data,2*N,sizeof(mat_uint16_t),mat->fp);
+                struct ComplexSplit *complex_data;
+
+                matvar->nbytes   = N*sizeof(mat_uint16_t);
+                complex_data     = malloc(sizeof(*complex_data));
+                complex_data->Re = malloc(matvar->nbytes);
+                complex_data->Im = malloc(matvar->nbytes);
+                matvar->data     = complex_data;
+                if ( complex_data != NULL &&
+                     complex_data->Re != NULL && complex_data->Im != NULL ) {
+                    fread(complex_data->Re,N,sizeof(mat_uint16_t),mat->fp);
+                    fread(complex_data->Im,N,sizeof(mat_uint16_t),mat->fp);
+                }
             } else {
                 matvar->nbytes = N*sizeof(mat_uint16_t);
                 matvar->data   = malloc(matvar->nbytes);
@@ -137,10 +177,18 @@ Read4(mat_t *mat,matvar_t *matvar)
         case MAT_T_UINT8:
             matvar->data_size = sizeof(mat_uint8_t);
             if ( matvar->isComplex ) {
-                matvar->nbytes = 2*N*sizeof(mat_uint8_t);
-                matvar->data   = malloc(matvar->nbytes);
-                if ( matvar->data != NULL )
-                    fread(matvar->data,2*N,sizeof(mat_uint8_t),mat->fp);
+                struct ComplexSplit *complex_data;
+
+                matvar->nbytes   = N*sizeof(mat_uint8_t);
+                complex_data     = malloc(sizeof(*complex_data));
+                complex_data->Re = malloc(matvar->nbytes);
+                complex_data->Im = malloc(matvar->nbytes);
+                matvar->data     = complex_data;
+                if ( complex_data != NULL &&
+                     complex_data->Re != NULL && complex_data->Im != NULL ) {
+                    fread(complex_data->Re,N,sizeof(mat_uint8_t),mat->fp);
+                    fread(complex_data->Im,N,sizeof(mat_uint8_t),mat->fp);
+                }
             } else {
                 matvar->nbytes = N*sizeof(mat_uint8_t);
                 matvar->data   = malloc(matvar->nbytes);
@@ -204,25 +252,36 @@ ReadData4(mat_t *mat,matvar_t *matvar,void *data,
             err = 1;
         else if ( stride[1]*(edge[1]-1)+start[1]+1 > matvar->dims[1] )
             err = 1;
-        ReadDataSlab2(mat,data,class_type,matvar->data_type,
-                matvar->dims,start,stride,edge);
         if ( matvar->isComplex ) {
+            struct ComplexSplit *cdata = data;
             long nbytes = edge[0]*edge[1]*Mat_SizeOf(matvar->data_type);
-            fseek(mat->fp,matvar->internal->datapos+nbytes,SEEK_SET);
-            ReadDataSlab2(mat,(unsigned char *)data+nbytes,class_type,
+
+            ReadDataSlab2(mat,cdata->Re,class_type,matvar->data_type,
+                    matvar->dims,start,stride,edge);
+            fseek(mat->fp,matvar->datapos+nbytes,SEEK_SET);
+            ReadDataSlab2(mat,cdata->Im,class_type,
                 matvar->data_type,matvar->dims,start,stride,edge);
+        } else {
+            ReadDataSlab2(mat,data,class_type,matvar->data_type,
+                    matvar->dims,start,stride,edge);
         }
     } else {
-        ReadDataSlabN(mat,data,class_type,matvar->data_type,
-                matvar->rank,matvar->dims,start,stride,edge);
         if ( matvar->isComplex ) {
             int i;
+            struct ComplexSplit *cdata = data;
             long nbytes = Mat_SizeOf(matvar->data_type);
+
             for ( i = 0; i < matvar->rank; i++ )
                 nbytes *= edge[i];
-            fseek(mat->fp,matvar->internal->datapos+nbytes,SEEK_SET);
-            ReadDataSlab2(mat,(unsigned char *)data+nbytes,class_type,
+
+            ReadDataSlabN(mat,cdata->Re,class_type,matvar->data_type,
+                matvar->rank,matvar->dims,start,stride,edge);
+            fseek(mat->fp,matvar->datapos+nbytes,SEEK_SET);
+            ReadDataSlab2(mat,cdata->Im,class_type,
                 matvar->data_type,matvar->dims,start,stride,edge);
+        } else {
+            ReadDataSlabN(mat,data,class_type,matvar->data_type,
+                matvar->rank,matvar->dims,start,stride,edge);
         }
     }
     return err;
@@ -379,12 +438,13 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
                            (matvar->dims[0] > 15 || matvar->dims[1] > 15) && 
                            matvar->isComplex ) {
                     int N;
+                    struct ComplexSplit *cdata = matvar->data;
+                    double *re = cdata->Re,*im = cdata->Im;
                     N = matvar->dims[0]*matvar->dims[1];
                     for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
                         for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
-                            printf("%f + %fi ",
-                                ((double*)matvar->data)[matvar->dims[0]*j+i],
-                                ((double*)matvar->data)[N+matvar->dims[0]*j+i]);
+                            printf("%f + %fi ",re[matvar->dims[0]*j+i],
+                                               im[matvar->dims[0]*j+i]);
                         if ( j < matvar->dims[1] )
                             printf("...");
                         printf("\n");
@@ -404,12 +464,13 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
                         printf(".\n.\n.\n");
                 } else if ( matvar->rank == 2 && matvar->isComplex) {
                     int N;
+                    struct ComplexSplit *cdata = matvar->data;
+                    double *re = cdata->Re,*im = cdata->Im;
                     N = matvar->dims[0]*matvar->dims[1];
                     for ( i = 0; i < matvar->dims[0]; i++ ) {
                         for ( j = 0; j < matvar->dims[1]; j++ )
-                            printf("%f + %fi ",
-                                ((double*)matvar->data)[matvar->dims[0]*j+i],
-                                ((double*)matvar->data)[N+matvar->dims[0]*j+i]);
+                            printf("%f + %fi ",re[matvar->dims[0]*j+i],
+                                               im[matvar->dims[0]*j+i]);
                         printf("\n");
                     }
                 } else if ( matvar->rank == 2 ) {
@@ -431,12 +492,14 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
                            (matvar->dims[0] > 15 || matvar->dims[1] > 15) && 
                            matvar->isComplex ) {
                     int N;
+                    struct ComplexSplit *cdata = matvar->data;
+                    float *re = cdata->Re,*im = cdata->Im;
                     N = matvar->dims[0]*matvar->dims[1];
                     for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
                         for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
                             printf("%f + %fi",
-                                ((float*)matvar->data)[matvar->dims[0]*j+i],
-                                ((float*)matvar->data)[N+matvar->dims[0]*j+i]);
+                                re[matvar->dims[0]*j+i],
+                                im[matvar->dims[0]*j+i]);
                         if ( j < matvar->dims[1] )
                             printf("...");
                         printf("\n");
@@ -456,12 +519,13 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
                         printf(".\n.\n.\n");
                 } else if ( matvar->rank == 2 && matvar->isComplex) {
                     int N;
+                    struct ComplexSplit *cdata = matvar->data;
+                    float *re = cdata->Re,*im = cdata->Im;
                     N = matvar->dims[0]*matvar->dims[1];
                     for ( i = 0; i < matvar->dims[0]; i++ ) {
                         for ( j = 0; j < matvar->dims[1]; j++ )
-                            printf("%f + %fi ",
-                                ((float*)matvar->data)[matvar->dims[0]*j+i],
-                                ((float*)matvar->data)[N+matvar->dims[0]*j+i]);
+                            printf("%f + %fi ",re[matvar->dims[0]*j+i],
+                                               im[matvar->dims[0]*j+i]);
                         printf("\n");
                     }
                 } else if ( matvar->rank == 2 ) {
@@ -474,11 +538,8 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
                 break;
             case MAT_C_INT32:
             {
-                mat_int32_t *data;
-
                 if ( !printdata )
                     break;
-                data = matvar->data;
                 if ( matvar->rank > 2 ) {
                     printf("I can't print more than 2 dimensions\n");
                 } else if ( matvar->rank == 1 && matvar->dims[0] > 15 ) {
@@ -487,11 +548,13 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
                            (matvar->dims[0] > 15 || matvar->dims[1] > 15) && 
                            matvar->isComplex ) {
                     int N;
+                    struct ComplexSplit *cdata = matvar->data;
+                    mat_int32_t *re = cdata->Re,*im = cdata->Im;
                     N = matvar->dims[0]*matvar->dims[1];
                     for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
                         for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
-                            printf("%d + %di ",data[matvar->dims[0]*j+i],
-                                   data[N+matvar->dims[0]*j+i]);
+                            printf("%d + %di ",re[matvar->dims[0]*j+i],
+                                               im[matvar->dims[0]*j+i]);
                         if ( j < matvar->dims[1] )
                             printf("...");
                         printf("\n");
@@ -500,6 +563,7 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
                         printf(".\n.\n.\n");
                 } else if (matvar->rank == 2 &&
                            (matvar->dims[0] > 15 || matvar->dims[1] > 15) ) {
+                    mat_int32_t *data = matvar->data;
                     for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
                         for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
                             printf("%d ",data[matvar->dims[0]*j+i]);
@@ -511,14 +575,17 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
                         printf(".\n.\n.\n");
                 } else if ( matvar->rank == 2 && matvar->isComplex) {
                     int N;
+                    struct ComplexSplit *cdata = matvar->data;
+                    mat_int32_t *re = cdata->Re,*im = cdata->Im;
                     N = matvar->dims[0]*matvar->dims[1];
                     for ( i = 0; i < matvar->dims[0]; i++ ) {
                         for ( j = 0; j < matvar->dims[1]; j++ )
-                            printf("%d + %di ",data[matvar->dims[0]*j+i],
-                                data[N+matvar->dims[0]*j+i]);
+                            printf("%d + %di ",re[matvar->dims[0]*j+i],
+                                               im[matvar->dims[0]*j+i]);
                         printf("\n");
                     }
                 } else if ( matvar->rank == 2 ) {
+                    mat_int32_t *data = matvar->data;
                     for ( i = 0; i < matvar->dims[0]; i++ ) {
                         for ( j = 0; j < matvar->dims[1]; j++ )
                             printf("%d ", data[matvar->dims[0]*j+i]);
@@ -529,11 +596,8 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
             }
             case MAT_C_INT16:
             {
-                mat_int16_t *data;
-
                 if ( !printdata )
                     break;
-                data = matvar->data;
                 if ( matvar->rank > 2 ) {
                     printf("I can't print more than 2 dimensions\n");
                 } else if ( matvar->rank == 1 && matvar->dims[0] > 15 ) {
@@ -542,11 +606,13 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
                            (matvar->dims[0] > 15 || matvar->dims[1] > 15) && 
                            matvar->isComplex ) {
                     int N;
+                    struct ComplexSplit *cdata = matvar->data;
+                    mat_int16_t *re = cdata->Re,*im = cdata->Im;
                     N = matvar->dims[0]*matvar->dims[1];
                     for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
                         for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
-                            printf("%hd + %hdi ",data[matvar->dims[0]*j+i],
-                                   data[N+matvar->dims[0]*j+i]);
+                            printf("%hd + %hdi ",re[matvar->dims[0]*j+i],
+                                   im[matvar->dims[0]*j+i]);
                         if ( j < matvar->dims[1] )
                             printf("...");
                         printf("\n");
@@ -555,6 +621,7 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
                         printf(".\n.\n.\n");
                 } else if (matvar->rank == 2 &&
                            (matvar->dims[0] > 15 || matvar->dims[1] > 15) ) {
+                    mat_int16_t *data = matvar->data;
                     for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
                         for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
                             printf("%hd ",data[matvar->dims[0]*j+i]);
@@ -566,14 +633,17 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
                         printf(".\n.\n.\n");
                 } else if ( matvar->rank == 2 && matvar->isComplex) {
                     int N;
+                    struct ComplexSplit *cdata = matvar->data;
+                    mat_int16_t *re = cdata->Re,*im = cdata->Im;
                     N = matvar->dims[0]*matvar->dims[1];
                     for ( i = 0; i < matvar->dims[0]; i++ ) {
                         for ( j = 0; j < matvar->dims[1]; j++ )
-                            printf("%hd + %hdi ",data[matvar->dims[0]*j+i],
-                                data[N+matvar->dims[0]*j+i]);
+                            printf("%hd + %hdi ",re[matvar->dims[0]*j+i],
+                                im[matvar->dims[0]*j+i]);
                         printf("\n");
                     }
                 } else if ( matvar->rank == 2 ) {
+                    mat_int16_t *data = matvar->data;
                     for ( i = 0; i < matvar->dims[0]; i++ ) {
                         for ( j = 0; j < matvar->dims[1]; j++ )
                             printf("%hd ", data[matvar->dims[0]*j+i]);
@@ -584,11 +654,8 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
             }
             case MAT_C_UINT16:
             {
-                mat_int16_t *data;
-
                 if ( !printdata )
                     break;
-                data = matvar->data;
                 if ( matvar->rank > 2 ) {
                     printf("I can't print more than 2 dimensions\n");
                 } else if ( matvar->rank == 1 && matvar->dims[0] > 15 ) {
@@ -597,11 +664,13 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
                            (matvar->dims[0] > 15 || matvar->dims[1] > 15) && 
                            matvar->isComplex ) {
                     int N;
+                    struct ComplexSplit *cdata = matvar->data;
+                    mat_uint16_t *re = cdata->Re,*im = cdata->Im;
                     N = matvar->dims[0]*matvar->dims[1];
                     for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
                         for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
-                            printf("%hu + %hui ",data[matvar->dims[0]*j+i],
-                                   data[N+matvar->dims[0]*j+i]);
+                            printf("%hu + %hui ",re[matvar->dims[0]*j+i],
+                                                 im[matvar->dims[0]*j+i]);
                         if ( j < matvar->dims[1] )
                             printf("...");
                         printf("\n");
@@ -610,6 +679,7 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
                         printf(".\n.\n.\n");
                 } else if (matvar->rank == 2 &&
                            (matvar->dims[0] > 15 || matvar->dims[1] > 15) ) {
+                    mat_int16_t *data = matvar->data;
                     for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
                         for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
                             printf("%hu ",data[matvar->dims[0]*j+i]);
@@ -621,14 +691,17 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
                         printf(".\n.\n.\n");
                 } else if ( matvar->rank == 2 && matvar->isComplex) {
                     int N;
+                    struct ComplexSplit *cdata = matvar->data;
+                    mat_uint16_t *re = cdata->Re,*im = cdata->Im;
                     N = matvar->dims[0]*matvar->dims[1];
                     for ( i = 0; i < matvar->dims[0]; i++ ) {
                         for ( j = 0; j < matvar->dims[1]; j++ )
-                            printf("%hu + %hui ",data[matvar->dims[0]*j+i],
-                                data[N+matvar->dims[0]*j+i]);
+                            printf("%hu + %hui ",re[matvar->dims[0]*j+i],
+                                                 im[matvar->dims[0]*j+i]);
                         printf("\n");
                     }
                 } else if ( matvar->rank == 2 ) {
+                    mat_int16_t *data = matvar->data;
                     for ( i = 0; i < matvar->dims[0]; i++ ) {
                         for ( j = 0; j < matvar->dims[1]; j++ )
                             printf("%hu ", data[matvar->dims[0]*j+i]);
@@ -639,11 +712,8 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
             }
             case MAT_C_UINT8:
             {
-                mat_int8_t *data;
-
                 if ( !printdata )
                     break;
-                data = matvar->data;
                 if ( matvar->rank > 2 ) {
                     printf("I can't print more than 2 dimensions\n");
                 } else if ( matvar->rank == 1 && matvar->dims[0] > 15 ) {
@@ -652,11 +722,13 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
                            (matvar->dims[0] > 15 || matvar->dims[1] > 15) && 
                            matvar->isComplex ) {
                     int N;
+                    struct ComplexSplit *cdata = matvar->data;
+                    mat_int8_t *re = cdata->Re,*im = cdata->Im;
                     N = matvar->dims[0]*matvar->dims[1];
                     for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
                         for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
-                            printf("%hu + %hui ",(mat_uint16_t)data[matvar->dims[0]*j+i],
-                                   (mat_uint16_t)data[N+matvar->dims[0]*j+i]);
+                            printf("%hu + %hui ",re[matvar->dims[0]*j+i],
+                                                 im[matvar->dims[0]*j+i]);
                         if ( j < matvar->dims[1] )
                             printf("...");
                         printf("\n");
@@ -665,6 +737,7 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
                         printf(".\n.\n.\n");
                 } else if (matvar->rank == 2 &&
                            (matvar->dims[0] > 15 || matvar->dims[1] > 15) ) {
+                    mat_int8_t *data = matvar->data;
                     for ( i = 0; i < matvar->dims[0] && i < 15; i++ ) {
                         for ( j = 0; j < matvar->dims[1] && j < 15; j++ )
                             printf("%hu ",(mat_uint16_t)data[matvar->dims[0]*j+i]);
@@ -676,14 +749,17 @@ Mat_VarPrint4(matvar_t *matvar,int printdata)
                         printf(".\n.\n.\n");
                 } else if ( matvar->rank == 2 && matvar->isComplex) {
                     int N;
+                    struct ComplexSplit *cdata = matvar->data;
+                    mat_int8_t *re = cdata->Re,*im = cdata->Im;
                     N = matvar->dims[0]*matvar->dims[1];
                     for ( i = 0; i < matvar->dims[0]; i++ ) {
                         for ( j = 0; j < matvar->dims[1]; j++ )
-                            printf("%hu + %hui ",(mat_uint16_t)data[matvar->dims[0]*j+i],
-                                (mat_uint16_t)data[N+matvar->dims[0]*j+i]);
+                            printf("%hu + %hui ",re[matvar->dims[0]*j+i],
+                                                 im[matvar->dims[0]*j+i]);
                         printf("\n");
                     }
                 } else if ( matvar->rank == 2 ) {
+                    mat_int8_t *data = matvar->data;
                     for ( i = 0; i < matvar->dims[0]; i++ ) {
                         for ( j = 0; j < matvar->dims[1]; j++ )
                             printf("%hu ",(mat_uint16_t)data[matvar->dims[0]*j+i]);
