@@ -43,6 +43,7 @@ am__aclocal_m4_deps = $(top_srcdir)/getopt/m4/getopt.m4 \
 	$(top_srcdir)/config/ltsugar.m4 \
 	$(top_srcdir)/config/ltversion.m4 \
 	$(top_srcdir)/config/lt~obsolete.m4 \
+	$(top_srcdir)/config/matio_def_file_ver.m4 \
 	$(top_srcdir)/config/matio_getopt_long.m4 \
 	$(top_srcdir)/config/matio_hdf5.m4 \
 	$(top_srcdir)/config/matio_int16_t.m4 \

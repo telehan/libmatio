@@ -310,18 +310,20 @@ mat73=$enableval,mat73=yes)
 AC_MSG_CHECKING(enable enable MAT v7.3 file support)
 if test "x$mat73" = "xno"
 then
-    AC_MSG_RESULT(no)
+    AC_MSG_RESULT([no])
     mat73=no
 elif test "x$ac_have_hdf5" = "xno"
 then
-    AC_MSG_RESULT(no)
+    AC_MSG_RESULT([no])
     mat73=no
 else
-    AC_MSG_RESULT(yes)
+    AC_MSG_RESULT([yes])
     AC_DEFINE_UNQUOTED([MAT73])
     mat73=yes
 fi
 AM_CONDITIONAL(MAT73, test "x$mat73" = "xyes")
+
+MATIO_CHECK_DEFAULT_FILE_VERSION
 
 dnl
 dnl Check whether to build in debug mode

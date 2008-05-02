@@ -4,6 +4,7 @@ AC_ARG_WITH(hdf5,AS_HELP_STRING([--with-hdf5=DIR],
             [Prefix where HDF5 library is installed]),
             HDF5_DIR=${withval},HDF5_DIR=)
 
+ac_have_hdf5=no
 if test -n "${HDF5_DIR}"
 then
     AC_MSG_CHECKING(for HDF5 software)

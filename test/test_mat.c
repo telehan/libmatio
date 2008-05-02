@@ -25,7 +25,7 @@
 #   define strcasecmp(a,b) strcmp(a,b)
 #endif
 
-static enum mat_ft mat_file_ver = MAT_FT_MAT5;
+static enum mat_ft mat_file_ver = MAT_FT_DEFAULT;
 
 static const char *helpstr[] = {
     "",
@@ -519,7 +519,7 @@ test_write( void )
     s.Re = f;
     s.Im = f+25;
 
-    mat = Mat_Create("test_mat_write.mat",NULL,mat_file_ver);
+    mat = Mat_CreateVer("test_mat_write.mat",NULL,mat_file_ver);
     if ( mat ) {
         matvar = Mat_VarCreate("d",MAT_C_DOUBLE,MAT_T_DOUBLE,2,dims,d,0);
         Mat_VarWrite( mat, matvar, 0);
@@ -753,7 +753,7 @@ test_write_struct()
     s.Re = fdata;
     s.Im = fdata+25;
 
-    mat = Mat_Create("test_mat_write_struct.mat",NULL,mat_file_ver);
+    mat = Mat_CreateVer("test_mat_write_struct.mat",NULL,mat_file_ver);
     if ( mat ) {
         matvar = malloc(8*sizeof(*matvar));
         matvar[0] = Mat_VarCreate("data",MAT_C_DOUBLE,MAT_T_DOUBLE,2,
@@ -817,7 +817,7 @@ test_write_compressed_struct()
         idata[i] = i+1;
     }
 
-    mat = Mat_Create("test_mat_write_compressed_struct.mat",NULL,mat_file_ver);
+    mat = Mat_CreateVer("test_mat_write_compressed_struct.mat",NULL,mat_file_ver);
     if ( mat ) {
         matvar = malloc(7*sizeof(matvar_t *));
         /*--------------------------------------------------------------*/
@@ -930,7 +930,7 @@ test_write_cell()
         idata[i] = i+1;
     }
 
-    mat = Mat_Create("test_mat_writecell.mat",NULL,mat_file_ver);
+    mat = Mat_CreateVer("test_mat_writecell.mat",NULL,mat_file_ver);
     if ( mat ) {
         matvar = malloc(5*sizeof(matvar_t *));
         matvar[0] = Mat_VarCreate("data",MAT_C_DOUBLE,MAT_T_DOUBLE,2,
@@ -1007,7 +1007,7 @@ test_write_compressed_cell()
         idata[i] = i+1;
     }
 
-    mat = Mat_Create("test_mat_write_compressed_cell.mat",NULL,mat_file_ver);
+    mat = Mat_CreateVer("test_mat_write_compressed_cell.mat",NULL,mat_file_ver);
     if ( mat ) {
         matvar = malloc(5*sizeof(*matvar));
         matvar[0] = Mat_VarCreate("data",MAT_C_DOUBLE,MAT_T_DOUBLE,2,
@@ -1077,7 +1077,7 @@ test_write_null(void)
     matvar_t *struct_fields[5] = {NULL,NULL,NULL,NULL,NULL};
     int       dims[3] = {0,1,10};
 
-    mat = Mat_Create("test_write_null.mat",NULL,mat_file_ver);
+    mat = Mat_CreateVer("test_write_null.mat",NULL,mat_file_ver);
     if ( mat != NULL ) {
         struct_fields[0] = Mat_VarCreate("d_null",MAT_C_DOUBLE,MAT_T_DOUBLE,3,
                             dims,NULL,0);
@@ -1223,7 +1223,7 @@ test_writeslab(void)
         idata[i] = i+1;
     }
 
-    mat = Mat_Create("test_mat_writeslab.mat",NULL,mat_file_ver);
+    mat = Mat_CreateVer("test_mat_writeslab.mat",NULL,mat_file_ver);
     if ( mat != NULL ) {
         matvar = Mat_VarCreate("d",MAT_C_DOUBLE,MAT_T_DOUBLE,2,
                        dims,NULL,0);
@@ -1263,7 +1263,7 @@ test_writenan(void)
     for ( i = 0; i < 25; i+= 6 )
         data[i] = 0.0/zero;
 
-    mat = Mat_Create("test_writenan.mat",NULL,mat_file_ver);
+    mat = Mat_CreateVer("test_writenan.mat",NULL,mat_file_ver);
     if ( mat != NULL ) {
         matvar = Mat_VarCreate("d",MAT_C_DOUBLE,MAT_T_DOUBLE,2,
                        dims,data,MEM_CONSERVE);
@@ -1292,7 +1292,7 @@ test_writeinf(void)
     for ( i = 0; i < 25; i+= 6 )
         data[i] = 1.0/zero;
 
-    mat = Mat_Create("test_writeinf.mat",NULL,mat_file_ver);
+    mat = Mat_CreateVer("test_writeinf.mat",NULL,mat_file_ver);
     if ( mat != NULL ) {
         matvar = Mat_VarCreate("d",MAT_C_DOUBLE,MAT_T_DOUBLE,2,
                        dims,data,MEM_CONSERVE);
@@ -1438,7 +1438,7 @@ int main (int argc, char *argv[])
     for ( k = optind; k < argc; ) {
         if ( !strcasecmp(argv[k],"copy") ) {
             k++;
-            mat = Mat_Create("test_mat_copy.mat",NULL,mat_file_ver);
+            mat = Mat_CreateVer("test_mat_copy.mat",NULL,mat_file_ver);
             mat2 = Mat_Open(argv[k++],MAT_ACC_RDONLY);
             if ( mat && mat2 ) {
                 while ( NULL != (matvar = Mat_VarReadNext(mat2)) )

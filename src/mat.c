@@ -72,7 +72,7 @@ ReadData(mat_t *mat, matvar_t *matvar)
  * simple FILE * and should not be used as one.
  */
 mat_t *
-Mat_Create(const char *matname,const char *hdr_str,enum mat_ft mat_file_ver)
+Mat_CreateVer(const char *matname,const char *hdr_str,enum mat_ft mat_file_ver)
 {
     mat_t *mat;
 
@@ -110,11 +110,11 @@ Mat_Open(const char *matname,int mode)
     } else if ( (mode & 0x00000001) == MAT_ACC_RDWR ) {
         fp = fopen( matname, "r+b" );
         if ( !fp ) {
-            mat = Mat_Create(matname,NULL,mode&0xfffffffe);
+            mat = Mat_CreateVer(matname,NULL,mode&0xfffffffe);
             return mat;
         }
     } else {
-        mat = Mat_Create(matname,NULL,mode&0xfffffffe);
+        mat = Mat_CreateVer(matname,NULL,mode&0xfffffffe);
         return mat;
     }
 
@@ -565,7 +565,7 @@ Mat_VarDelete(mat_t *mat, char *name)
 
     temp     = strdup_printf("XXXXXX");
     tmp_name = mktemp(temp);
-    tmp      = Mat_Create(tmp_name,mat->header,mat_file_ver);
+    tmp      = Mat_CreateVer(tmp_name,mat->header,mat_file_ver);
     if ( tmp != NULL ) {
         while ( NULL != (matvar = Mat_VarReadNext(mat)) ) {
             if ( strcmp(matvar->name,name) )

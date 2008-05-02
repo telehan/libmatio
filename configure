@@ -1531,6 +1531,8 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-zlib=DIR         Prefix where zlib Library is installed
   --with-hdf5=DIR         Prefix where HDF5 library is installed
+  --with-default-file-ver=version
+                          Default MAT file version (4,5,7.3)
 
 Some influential environment variables:
   CC          C compiler command
@@ -7481,13 +7483,13 @@ if test "${lt_cv_nm_interface+set}" = set; then
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:7484: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:7486: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:7487: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:7489: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:7490: output\"" >&5)
+  (eval echo "\"\$as_me:7492: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -8595,7 +8597,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 8598 "configure"' > conftest.$ac_ext
+  echo '#line 8600 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -9891,11 +9893,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:9894: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:9896: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:9898: \$? = $ac_status" >&5
+   echo "$as_me:9900: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -10223,11 +10225,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:10226: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:10228: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:10230: \$? = $ac_status" >&5
+   echo "$as_me:10232: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -10328,11 +10330,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:10331: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:10333: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:10335: \$? = $ac_status" >&5
+   echo "$as_me:10337: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -10383,11 +10385,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:10386: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:10388: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:10390: \$? = $ac_status" >&5
+   echo "$as_me:10392: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -13227,7 +13229,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 13230 "configure"
+#line 13232 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -13327,7 +13329,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 13330 "configure"
+#line 13332 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -14126,11 +14128,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14129: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14131: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:14133: \$? = $ac_status" >&5
+   echo "$as_me:14135: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -14225,11 +14227,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14228: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14230: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14232: \$? = $ac_status" >&5
+   echo "$as_me:14234: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -14277,11 +14279,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14280: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14282: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14284: \$? = $ac_status" >&5
+   echo "$as_me:14286: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -24454,6 +24456,7 @@ else
 fi
 
 
+ac_have_hdf5=no
 if test -n "${HDF5_DIR}"
 then
     { echo "$as_me:$LINENO: checking for HDF5 software" >&5
@@ -24590,6 +24593,43 @@ fi
 else
   MAT73_TRUE='#'
   MAT73_FALSE=
+fi
+
+
+
+
+# Check whether --with-default-file-ver was given.
+if test "${with_default_file_ver+set}" = set; then
+  withval=$with_default_file_ver;
+else
+  with_default_file_ver=5
+fi
+
+  { echo "$as_me:$LINENO: checking for default MAT file version" >&5
+echo $ECHO_N "checking for default MAT file version... $ECHO_C" >&6; }
+file_ver=
+case "$with_default_file_ver" in
+  "4")
+    file_ver=MAT_FT_MAT4
+    ;;
+  "5")
+    file_ver=MAT_FT_MAT5
+    ;;
+  "7.3")
+    file_ver=MAT_FT_MAT73
+    ;;
+esac
+if test "x$file_ver" != "x"; then
+  cat >>confdefs.h <<_ACEOF
+#define MAT_FT_DEFAULT $file_ver
+_ACEOF
+
+  { echo "$as_me:$LINENO: result: $file_ver" >&5
+echo "${ECHO_T}$file_ver" >&6; }
+else
+  { { echo "$as_me:$LINENO: error: Unrecognized MAT file version" >&5
+echo "$as_me: error: Unrecognized MAT file version" >&2;}
+   { (exit 1); exit 1; }; }
 fi
 
 

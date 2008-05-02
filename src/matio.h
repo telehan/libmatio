@@ -265,8 +265,9 @@ EXTERN size_t Mat_SizeOf(enum matio_types data_type);
 EXTERN size_t Mat_SizeOfClass(int class_type);
 
 /*   MAT File functions   */
-EXTERN mat_t  *Mat_Create(const char *matname,const char *hdr_str,
-                          enum mat_ft mat_file_ver);
+#define        Mat_Create(a,b) Mat_CreateVer(a,b,MAT_FT_DEFAULT)
+EXTERN mat_t  *Mat_CreateVer(const char *matname,const char *hdr_str,
+                   enum mat_ft mat_file_ver);
 EXTERN int     Mat_Close(mat_t *mat);
 EXTERN mat_t  *Mat_Open(const char *matname,int mode);
 EXTERN int     Mat_Rewind(mat_t *mat);
