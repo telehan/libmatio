@@ -30,8 +30,8 @@ if HAVE_ZLIB
     ZLIB_SRC = inflate.c
 endif
 
-nodist_include_HEADERS = 
-include_HEADERS        = matio.h matioConfig.h
+nodist_include_HEADERS = matioConfig.h
+include_HEADERS        = matio.h
 noinst_HEADERS         = matio_private.h mat4.h mat5.h
 lib_LTLIBRARIES        = libmatio.la
 libmatio_la_SOURCES    = snprintf.c endian.c io.c $(ZLIB_SRC) read_data.c \

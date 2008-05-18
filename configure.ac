@@ -315,10 +315,11 @@ then
 elif test "x$ac_have_hdf5" = "xno"
 then
     AC_MSG_RESULT([no])
+    AC_DEFINE_UNQUOTED([MAT73],[0])
     mat73=no
 else
     AC_MSG_RESULT([yes])
-    AC_DEFINE_UNQUOTED([MAT73])
+    AC_DEFINE_UNQUOTED([MAT73],[1])
     mat73=yes
 fi
 AM_CONDITIONAL(MAT73, test "x$mat73" = "xyes")
