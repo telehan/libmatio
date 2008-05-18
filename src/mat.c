@@ -78,8 +78,10 @@ Mat_CreateVer(const char *matname,const char *hdr_str,enum mat_ft mat_file_ver)
 
     if ( MAT_FT_MAT5 == mat_file_ver )
         mat = Mat_Create5(matname,hdr_str);
+#if MAT73
     else if ( MAT_FT_MAT73 == mat_file_ver )
         mat = Mat_Create73(matname,hdr_str);
+#endif
     else
         mat = Mat_Create5(matname,hdr_str);
 
@@ -787,6 +789,8 @@ Mat_VarFree(matvar_t *matvar)
                     break;
             }
         }
+        free(matvar->internal);
+        matvar->internal = NULL;
     }
 #endif
     /* FIXME: Why does this cause a SEGV? */
@@ -1379,8 +1383,10 @@ Mat_VarPrint( matvar_t *matvar, int printdata )
         return;
     else if ( matvar->internal->fp->version == MAT_FT_MAT5 )
         Mat_VarPrint5(matvar,printdata);
+#if MAT73
     else if ( matvar->internal->fp->version == MAT_FT_MAT73 )
         Mat_VarPrint73(matvar,printdata);
+#endif
     else if ( matvar->internal->fp->version == MAT_FT_MAT4 )
         Mat_VarPrint4(matvar,printdata);
     return;
@@ -1757,8 +1763,10 @@ Mat_VarReadNextInfo( mat_t *mat )
         return NULL;
     else if ( mat->version == MAT_FT_MAT5 )
         return Mat_VarReadNextInfo5(mat);
+#if MAT73
     else if ( mat->version == MAT_FT_MAT73 )
         return Mat_VarReadNextInfo73(mat);
+#endif
     else
         return Mat_VarReadNextInfo4(mat);
 
