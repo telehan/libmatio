@@ -20,7 +20,8 @@ dnl  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 AC_INIT([MATIO],[1.5.0],[chulbe1@mac.com],[])
 AC_CONFIG_SRCDIR([src/matio.h])
-AC_CONFIG_AUX_DIR(config)
+AC_CONFIG_AUX_DIR([config])
+AC_CONFIG_MACRO_DIR([config])
 dnl AM_INIT_AUTOMAKE([-no-undefined])
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
@@ -423,6 +424,7 @@ AC_MSG_RESULT([              FCFLAGS: $FCFLAGS])
 AC_MSG_RESULT([            FCLDFLAGS: $FCLDFLAGS])
 AC_MSG_RESULT([     Shared Libraries: $enable_shared])
 AC_MSG_RESULT([     Static Libraries: $enable_static])
+AC_MSG_RESULT([  default MAT version: $file_ver])
 AC_MSG_RESULT([])
 AC_MSG_RESULT([Features --------------------------------------------])
 AC_MSG_RESULT([    Fortran Interface: $enable_fortran])
