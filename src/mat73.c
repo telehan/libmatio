@@ -1258,7 +1258,17 @@ Mat_WriteNextStructField73(hid_t id,matvar_t *matvar,const char *name)
                 nmemb = matvar->dims[0];
                 for ( k = 1; k < matvar->rank; k++ )
                     nmemb *= matvar->dims[k];
-                nfields = matvar->nbytes / (nmemb*matvar->data_size);
+
+                if ( nmemb )
+                    nfields = matvar->nbytes / (nmemb*matvar->data_size);
+                else
+                    nfields = matvar->nbytes / (matvar->data_size);
+
+                /* Structure with no fields */
+                if ( nfields == 0 ) {
+                    H5Gclose(struct_id);
+                    break;
+                }
 
                 fieldnames = malloc(nfields*sizeof(*fieldnames));
                 fields     = matvar->data;
@@ -1658,7 +1668,18 @@ Mat_WriteNextCellField73(hid_t id,matvar_t *matvar,const char *name)
                 nmemb = matvar->dims[0];
                 for ( k = 1; k < matvar->rank; k++ )
                     nmemb *= matvar->dims[k];
-                nfields = matvar->nbytes / (nmemb*matvar->data_size);
+
+                if ( nmemb )
+                    nfields = matvar->nbytes / (nmemb*matvar->data_size);
+                else
+                    nfields = matvar->nbytes / (matvar->data_size);
+
+                /* Structure with no fields */
+                if ( nfields == 0 ) {
+                    H5Gclose(struct_id);
+                    break;
+                }
+
 
                 fieldnames = malloc(nfields*sizeof(*fieldnames));
                 fields     = matvar->data;
@@ -2828,7 +2849,18 @@ Mat_VarWrite73(mat_t *mat,matvar_t *matvar,int compress)
                 nmemb = matvar->dims[0];
                 for ( k = 1; k < matvar->rank; k++ )
                     nmemb *= matvar->dims[k];
-                nfields = matvar->nbytes / (nmemb*matvar->data_size);
+
+                if ( nmemb )
+                    nfields = matvar->nbytes / (nmemb*matvar->data_size);
+                else
+                    nfields = matvar->nbytes / (matvar->data_size);
+
+                /* Structure with no fields */
+                if ( nfields == 0 ) {
+                    H5Gclose(struct_id);
+                    break;
+                }
+
 
                 fieldnames = malloc(nfields*sizeof(*fieldnames));
                 fields     = matvar->data;
