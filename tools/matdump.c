@@ -190,6 +190,8 @@ print_default(matvar_t *matvar)
             Mat_Message("}");
             break;
         }
+        default:
+            Mat_Message("Empty");
     }
 }
 
