@@ -3,7 +3,7 @@
  * @ingroup MAT
  */
 /*
- * Copyright (C) 2005-2006   Christopher C. Hulbert
+ * Copyright (C) 2005-2008   Christopher C. Hulbert
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -494,7 +494,7 @@ Mat_VarCreate(const char *name,int class_type,int data_type,int rank,int *dims,
         matvar->nbytes = nmemb*matvar->data_size;
     } else if ( matvar->class_type == MAT_C_SPARSE ) {
         matvar->data_size = sizeof(sparse_t);
-        matvar->nbytes = nmemb*matvar->data_size;
+        matvar->nbytes    = matvar->data_size;
     } else {
         matvar->nbytes = nmemb*matvar->data_size;
     }
