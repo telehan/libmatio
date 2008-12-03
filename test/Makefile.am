@@ -19,9 +19,14 @@
 AUTOMAKE_OPTIONS = foreign 1.8 no-dependencies
 VPATH = @srcdir@
 
-AM_CFLAGS   = -I$(top_srcdir)/src $(HDF5_CFLAGS) $(ZLIB_CFLAGS)
+if NEED_GETOPT
+GETOPT_CFLAGS = -I$(top_builddir)/getopt/lib
+GETOPT_LIBS   = $(top_builddir)/getopt/lib/libgnu.la
+endif
+
+AM_CFLAGS   = -I$(top_srcdir)/src $(GETOPT_CFLAGS) $(HDF5_CFLAGS) $(ZLIB_CFLAGS)
 AM_LDFLAGS  = $(FCLDFLAGS)
-TEST_LIBS   = $(top_builddir)/src/libmatio.la $(HDF5_LIBS) $(ZLIB_LIBS)
+TEST_LIBS   = $(top_builddir)/src/libmatio.la $(GETOPT_LIBS) $(HDF5_LIBS) $(ZLIB_LIBS)
 TEST_LFLAGS = -L$(top_builddir)/src
 
 bin_PROGRAMS = test_mat test_snprintf

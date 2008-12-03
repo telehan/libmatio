@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2006   Christopher C. Hulbert
+ * Copyright (C) 2005-2008   Christopher C. Hulbert
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -20,12 +20,25 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include <matio.h>
+#include <getopt.h>
+#include "matio.h"
 #if !defined(HAVE_STRCASECMP)
 #   define strcasecmp(a,b) strcmp(a,b)
 #endif
 
-static enum mat_ft mat_file_ver = MAT_FT_DEFAULT;
+static const char *optstring = "v:HLT:Vz";
+static struct option options[] = {
+    {"compress",    no_argument,NULL,'z'},
+    {"mat-version", required_argument,NULL,'v'},
+    {"help",        no_argument,NULL,'H'},
+    {"help-test",   required_argument,NULL,'T'},
+    {"list-tests",  no_argument,      NULL,'L'},
+    {"version",     no_argument,      NULL,'V'},
+    {NULL,0,NULL,0}
+};
+
+static enum mat_ft            mat_file_ver = MAT_FT_DEFAULT;
+static enum matio_compression compression  = COMPRESSION_NONE;
 
 static const char *helpstr[] = {
     "",
@@ -35,10 +48,11 @@ static const char *helpstr[] = {
     "",
     "OPTIONS",
     "-H, --help           This output",
-    "--help-tests         List of tests",
-    "-H, --help TEST      help information on test TEST",
+    "-L, --list-tests     List of tests",
+    "-T, --help-test TEST help information on test TEST",
     "-v, --mat-version x  Set MAT file version to x (4, 5, 7.3)",
     "-V, --version        version information",
+    "-z, --compress       Enable compression for MAT 5 files",
     "",
     "test        - name of the test to run",
     "TEST_OPTS   - If required, specify arguments to a test(See --help TEST)",
@@ -940,11 +954,11 @@ test_write_cell()
         matvar[2] = Mat_VarCreate("data",MAT_C_INT32,MAT_T_INT32,2,
                        dims,idata,MEM_CONSERVE);
         matvar[3] = NULL;
-        dims[0] = 3;
-        dims[1] = 1;
+        dims[0] = 3; dims[1] = 1;
         substruct_matvar = Mat_VarCreate("structure",MAT_C_STRUCT,MAT_T_STRUCT,
                             2,dims,matvar,0);
 
+        dims[0] = 5; dims[1] = 10;
         matvar[0] = Mat_VarCreate("data",MAT_C_DOUBLE,MAT_T_DOUBLE,2,
                        dims,data,MEM_CONSERVE);
         matvar[1] = Mat_VarCreate("data",MAT_C_SINGLE,MAT_T_SINGLE,2,
@@ -952,11 +966,11 @@ test_write_cell()
         matvar[2] = Mat_VarCreate("data",MAT_C_INT32,MAT_T_INT32,2,
                        dims,idata,MEM_CONSERVE);
         matvar[3] = substruct_matvar;
-        dims[0] = 4;
-        dims[1] = 1;
+        dims[0] = 4; dims[1] = 1;
         cell_matvar = Mat_VarCreate("cell",MAT_C_CELL,MAT_T_CELL,2,
                             dims,matvar,0);
 
+        dims[0] = 5; dims[1] = 10;
         matvar[0] = Mat_VarCreate("data",MAT_C_DOUBLE,MAT_T_DOUBLE,2,
                        dims,data,MEM_CONSERVE);
         matvar[1] = Mat_VarCreate("data",MAT_C_SINGLE,MAT_T_SINGLE,2,
@@ -964,11 +978,11 @@ test_write_cell()
         matvar[2] = Mat_VarCreate("data",MAT_C_INT32,MAT_T_INT32,2,
                        dims,idata,MEM_CONSERVE);
         matvar[3] = NULL;
-        dims[0] = 3;
-        dims[1] = 1;
+        dims[0] = 3; dims[1] = 1;
         substruct_matvar = Mat_VarCreate("structure",MAT_C_STRUCT,MAT_T_STRUCT,
                             2,dims,matvar,0);
 
+        dims[0] = 5; dims[1] = 10;
         matvar[0] = Mat_VarCreate("data",MAT_C_DOUBLE,MAT_T_DOUBLE,2,
                        dims,data,MEM_CONSERVE);
         matvar[1] = Mat_VarCreate("data",MAT_C_SINGLE,MAT_T_SINGLE,2,
@@ -977,8 +991,7 @@ test_write_cell()
                        dims,idata,MEM_CONSERVE);
         matvar[3] = substruct_matvar;
         matvar[4] = cell_matvar;
-        dims[0] = 5;
-        dims[1] = 1;
+        dims[0] = 5; dims[1] = 1;
         cell_matvar = Mat_VarCreate("cell",MAT_C_CELL,MAT_T_CELL,2,
                             dims,matvar,0);
 
@@ -1081,21 +1094,24 @@ test_write_null(void)
     if ( mat != NULL ) {
         struct_fields[0] = Mat_VarCreate("d_null",MAT_C_DOUBLE,MAT_T_DOUBLE,3,
                             dims,NULL,0);
-        Mat_VarWrite(mat,struct_fields[0],0);
+        Mat_VarWrite(mat,struct_fields[0],compression);
         struct_fields[1] = Mat_VarCreate("cd_null",MAT_C_DOUBLE,MAT_T_DOUBLE,3,
                             dims,NULL,MAT_F_COMPLEX);
-        Mat_VarWrite(mat,struct_fields[1],0);
+        Mat_VarWrite(mat,struct_fields[1],compression);
+        struct_fields[2] = Mat_VarCreate("char_null",MAT_C_CHAR,MAT_T_UINT8,2,
+                            dims,NULL,0);
+        Mat_VarWrite(mat,struct_fields[2],compression);
         dims[0] = 1;
         struct_matvar = Mat_VarCreate("struct_null",MAT_C_STRUCT,MAT_T_STRUCT,2,
                             dims,NULL,0);
-        Mat_VarWrite(mat,struct_matvar,0);
+        Mat_VarWrite(mat,struct_matvar,compression);
         Mat_VarFree(struct_matvar);
         struct_matvar = Mat_VarCreate("struct_null_fields",MAT_C_STRUCT,
                             MAT_T_STRUCT,2,dims,struct_fields,0);
-        Mat_VarWrite(mat,struct_matvar,0);
+        Mat_VarWrite(mat,struct_matvar,compression);
         cell_matvar = Mat_VarCreate("cell_null_cells",MAT_C_CELL,MAT_T_CELL,2,
                             dims,struct_fields,MEM_CONSERVE);
-        Mat_VarWrite(mat,cell_matvar,0);
+        Mat_VarWrite(mat,cell_matvar,compression);
         Mat_VarFree(struct_matvar);
         Mat_Close(mat);
     } else {
@@ -1402,36 +1418,48 @@ test_delete(char *file,char *name)
 int main (int argc, char *argv[])
 {
     char *prog_name = "test_mat";
-    int   i, k, err = 0, ntests = 0,optind=1;
+    int   c,i, k, err = 0, ntests = 0;
     mat_t *mat, *mat2;
     matvar_t *matvar, *matvar2, *matvar3;
 
     Mat_LogInit(prog_name);
 
-    if ( argc < 2 ) {
-        Mat_Error("Must specify a test, -H, --help, -V, or --version");
-    } else if ((argc==2) && 
-               (!strcmp(argv[1],"--help") || !strcmp(argv[1],"-H"))) {
-        Mat_Help(helpstr);
-    } else if ( (argc == 2) && !strcmp(argv[1],"--help-tests") ) {
-        Mat_Help(helptestsstr);
-    } else if ( (argc == 3) && !strcmp(argv[1],"--help") ) {
-        help_test(argv[2]);
-    } else if ((argc==2) && 
-               (!strcmp(argv[1],"--version") || !strcmp(argv[1],"-V"))) {
-        printf("%s v%d.%d.%d (compiled %s, %s for %s)\n", prog_name,
-               MATIO_MAJOR_VERSION, MATIO_MINOR_VERSION, MATIO_RELEASE_LEVEL,
-               __DATE__, __TIME__, MATIO_PLATFORM );
-        exit(EXIT_SUCCESS);
-    } else if ( argc > 2 && !strcmp(argv[1],"-v") ) {
-        optind = 3;
-        if ( !strcmp(argv[2],"5") ) {
-            mat_file_ver = MAT_FT_MAT5;
-        } else if ( !strcmp(argv[2],"7.3") ) {
-            mat_file_ver = MAT_FT_MAT73;
-        } else {
-            fprintf(stderr,"Unrecognized MAT file version %s",argv[2]);
-            exit(EXIT_FAILURE);
+    while ((c = getopt_long(argc,argv,optstring,options,NULL)) != EOF) {
+        switch (c) {
+            case 'v':
+                if ( !strcmp(optarg,"5") ) {
+                    mat_file_ver = MAT_FT_MAT5;
+                } else if ( !strcmp(optarg,"7.3") ) {
+                    mat_file_ver = MAT_FT_MAT73;
+                } else {
+                    fprintf(stderr,"Unrecognized MAT file version %s",argv[2]);
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            case 'H':
+                Mat_Help(helpstr);
+                exit(EXIT_SUCCESS);
+            case 'L':
+                Mat_Help(helptestsstr);
+                exit(EXIT_SUCCESS);
+            case 'T':
+                help_test(optarg);
+                exit(EXIT_SUCCESS);
+            case 'V':
+                printf("%s %d.%d.%d\n"
+                       "Written by Christopher Hulbert\n\n"
+                       "Copyright(C) 2006-2008 Christopher C. Hulbert\n",
+                       prog_name,MATIO_MAJOR_VERSION,MATIO_MINOR_VERSION,
+                       MATIO_RELEASE_LEVEL);
+                exit(EXIT_SUCCESS);
+            case 'z':
+                compression = COMPRESSION_ZLIB;
+                break;
+            case '?':
+                exit(EXIT_FAILURE);
+            default:
+                printf("%c not a valid option\n", c);
+                break;
         }
     }
 
