@@ -1101,18 +1101,32 @@ test_write_null(void)
         struct_fields[2] = Mat_VarCreate("char_null",MAT_C_CHAR,MAT_T_UINT8,2,
                             dims,NULL,0);
         Mat_VarWrite(mat,struct_fields[2],compression);
-        dims[0] = 1;
         struct_matvar = Mat_VarCreate("struct_null",MAT_C_STRUCT,MAT_T_STRUCT,2,
                             dims,NULL,0);
         Mat_VarWrite(mat,struct_matvar,compression);
         Mat_VarFree(struct_matvar);
-        struct_matvar = Mat_VarCreate("struct_null_fields",MAT_C_STRUCT,
-                            MAT_T_STRUCT,2,dims,struct_fields,0);
+        struct_matvar = Mat_VarCreate("struct_empty_with_fields",MAT_C_STRUCT,
+                            MAT_T_STRUCT,3,dims,struct_fields,MEM_CONSERVE);
         Mat_VarWrite(mat,struct_matvar,compression);
-        cell_matvar = Mat_VarCreate("cell_null_cells",MAT_C_CELL,MAT_T_CELL,2,
-                            dims,struct_fields,MEM_CONSERVE);
-        Mat_VarWrite(mat,cell_matvar,compression);
+        /* Reset data to NULL so the fields are not free'd */
+        struct_matvar->data = NULL;
         Mat_VarFree(struct_matvar);
+        dims[0] = 1;
+        struct_matvar = Mat_VarCreate("struct_null_fields",MAT_C_STRUCT,
+                            MAT_T_STRUCT,2,dims,struct_fields,MEM_CONSERVE);
+        Mat_VarWrite(mat,struct_matvar,compression);
+        /* Reset data to NULL so the fields are not free'd */
+        struct_matvar->data = NULL;
+        Mat_VarFree(struct_matvar);
+        dims[0] = 0;
+        cell_matvar = Mat_VarCreate("cell_null_cells",MAT_C_CELL,MAT_T_CELL,2,
+                            dims,NULL,MEM_CONSERVE);
+        Mat_VarWrite(mat,cell_matvar,compression);
+        Mat_VarFree(cell_matvar);
+
+        Mat_VarFree(struct_fields[0]);
+        Mat_VarFree(struct_fields[1]);
+        Mat_VarFree(struct_fields[2]);
         Mat_Close(mat);
     } else {
         err = 1;
