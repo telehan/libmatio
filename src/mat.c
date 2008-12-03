@@ -471,14 +471,15 @@ Mat_VarCreate(const char *name,int class_type,int data_type,int rank,int *dims,
         {
             matvar_t **fields;
 
-            if ( data == NULL )
-                break;
-            fields = data;
-            nfields = 0;
-            while ( fields[nfields] != NULL )
-                nfields++;
             matvar->data_size = sizeof(matvar_t **);
-            nmemb = nfields; /* nfields is really nmemb*nfields */
+            nmemb = 0;
+            if ( data != NULL ) {
+                fields = data;
+                nfields = 0;
+                while ( fields[nfields] != NULL )
+                    nfields++;
+                nmemb = nfields; /* nfields is really nmemb*nfields */
+            }
             break;
         }
         default:
